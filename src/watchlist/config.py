@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     redis_url: RedisDsn = RedisDsn("redis://localhost:6379/0")
     tmdb_api_key: SecretStr | None = None
     log_level: str = "INFO"
+    session_ttl_days: int = 30
+
+    @property
+    def secure_cookies(self) -> bool:
+        return self.environment == "production"
 
 
 @lru_cache

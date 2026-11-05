@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <div class="mx-auto max-w-md text-center">
+    <h1 class="mb-2 text-2xl font-semibold tracking-tight">{{ title }}</h1>
+    <p class="text-slate-600">{{ message }}</p>
+    <a href="/" class="mt-6 inline-block text-sm font-medium text-slate-900 underline">На головну</a>
+  </div>
+{% endblock %}

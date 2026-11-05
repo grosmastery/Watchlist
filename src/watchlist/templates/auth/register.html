@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field, form_error, submit %}
+
+{% block title %}Реєстрація{% endblock %}
+
+{% block content %}
+  <div class="mx-auto max-w-sm">
+    <h1 class="mb-6 text-2xl font-semibold tracking-tight">Реєстрація</h1>
+    <form method="post" action="/register" class="space-y-4" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {{ form_error(errors) }}
+      {{ field("email", "Електронна пошта", type="email", value=values.get("email", ""), error=errors.get("email"), autocomplete="email") }}
+      {{ field("username", "Ім'я користувача", value=values.get("username", ""), error=errors.get("username"), autocomplete="username") }}
+      {{ field("password", "Пароль", type="password", error=errors.get("password"), autocomplete="new-password") }}
+      {{ field("password_confirm", "Повторіть пароль", type="password", error=errors.get("password_confirm"), autocomplete="new-password") }}
+      {{ submit("Створити акаунт") }}
+    </form>
+    <p class="mt-6 text-center text-sm text-slate-600">
+      Вже маєте акаунт? <a href="/login" class="font-medium text-slate-900 underline">Увійти</a>
+    </p>
+  </div>
+{% endblock %}

@@ -9,11 +9,14 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.1",
+    "argon2-cffi>=25.1.0",
     "asyncpg>=0.32.0",
+    "email-validator>=2.3.0",
     "fastapi>=0.162.0",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
     "pydantic-settings>=2.16.2",
+    "python-multipart>=0.0.33",
     "sqlalchemy[asyncio]>=2.1.8",
     "uvicorn[standard]>=0.54.0",
 ]
@@ -26,6 +29,7 @@ build-backend = "uv_build"
 dev = [
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",
+    "pytailwindcss>=0.4.2",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1.post1",
     "respx>=0.23.1",
@@ -42,7 +46,7 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "RUF", "ASYNC", "S", "PT",
 ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+"tests/**" = ["S101", "S105", "S106", "S107"]
 
 [tool.mypy]
 python_version = "3.13"

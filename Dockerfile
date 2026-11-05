@@ -1,3 +1,20 @@
+FROM python:3.13-slim-bookworm AS css
+
+COPY --from=ghcr.io/astral-sh/uv:0.12.16 /uv /uvx /bin/
+
+ENV TAILWINDCSS_VERSION=v4.3.4
+
+WORKDIR /app
+
+COPY src/watchlist/templates ./src/watchlist/templates
+COPY src/watchlist/static/src ./src/watchlist/static/src
+
+RUN uvx --from pytailwindcss==0.4.2 tailwindcss \
+    -i src/watchlist/static/src/app.css \
+    -o src/watchlist/static/css/app.css \
+    --minify
+
+
 FROM python:3.13-slim-bookworm AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.12.16 /uv /uvx /bin/
@@ -15,6 +32,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY pyproject.toml uv.lock README.md alembic.ini ./
 COPY src ./src
+COPY --from=css /app/src/watchlist/static/css ./src/watchlist/static/css
 COPY migrations ./migrations
 
 RUN --mount=type=cache,target=/root/.cache/uv \

@@ -7,7 +7,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from watchlist.config import get_settings
-from watchlist.db import Base
+from watchlist.models import Base
 
 config = context.config
 

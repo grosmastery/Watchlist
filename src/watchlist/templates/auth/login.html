@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_forms.html" import field, form_error, submit %}
+
+{% block title %}Вхід{% endblock %}
+
+{% block content %}
+  <div class="mx-auto max-w-sm">
+    <h1 class="mb-6 text-2xl font-semibold tracking-tight">Вхід</h1>
+    <form method="post" action="/login" class="space-y-4" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      {{ form_error(errors) }}
+      {{ field("login", "Пошта або ім'я користувача", value=values.get("login", ""), error=errors.get("login"), autocomplete="username") }}
+      {{ field("password", "Пароль", type="password", error=errors.get("password"), autocomplete="current-password") }}
+      {{ submit("Увійти") }}
+    </form>
+    <p class="mt-6 text-center text-sm text-slate-600">
+      Немає акаунта? <a href="/register" class="font-medium text-slate-900 underline">Зареєструватися</a>
+    </p>
+  </div>
+{% endblock %}

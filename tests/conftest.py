@@ -1,15 +1,17 @@
 import asyncio
 import os
+import re
 from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
@@ -21,6 +23,7 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+CSRF_PATTERN = re.compile(r'name="csrf_token" value="([^"]+)"')
 
 
 async def ensure_database_exists(url: str) -> None:
@@ -45,16 +48,50 @@ def run_migrations() -> None:
     command.upgrade(config, "head")
 
 
-@pytest.fixture(scope="session", autouse=True)
-async def database() -> None:
+@pytest.fixture(scope="session")
+async def engine() -> AsyncIterator[AsyncEngine]:
     await ensure_database_exists(TEST_DATABASE_URL)
     await asyncio.to_thread(run_migrations)
+    engine = create_async_engine(TEST_DATABASE_URL)
+    yield engine
+    await engine.dispose()
 
 
 @pytest.fixture
-async def client() -> AsyncIterator[AsyncClient]:
+async def db_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
+        session = AsyncSession(
+            bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False
+        )
+        try:
+            yield session
+        finally:
+            await session.close()
+            await transaction.rollback()
+
+
+@pytest.fixture
+def app(db_session: AsyncSession) -> FastAPI:
+    from watchlist.db import get_session
     from watchlist.main import create_app
 
+    async def override_session() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
     app = create_app()
+    app.dependency_overrides[get_session] = override_session
+    return app
+
+
+@pytest.fixture
+async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+
+async def fetch_csrf_token(client: AsyncClient, path: str = "/login") -> str:
+    response = await client.get(path)
+    match = CSRF_PATTERN.search(response.text)
+    assert match is not None
+    return match.group(1)
