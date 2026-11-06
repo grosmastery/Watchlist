@@ -1,10 +1,12 @@
 import asyncio
 import os
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+import respx
 from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
@@ -12,6 +14,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+
+if TYPE_CHECKING:
+    from watchlist.integrations.tmdb import TMDBClient
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
@@ -72,8 +77,26 @@ async def db_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-def app(db_session: AsyncSession) -> FastAPI:
+def tmdb_mock() -> Iterator[respx.MockRouter]:
+    from watchlist.integrations.tmdb import BASE_URL
+
+    with respx.mock(base_url=BASE_URL, assert_all_called=False) as router:
+        yield router
+
+
+@pytest.fixture(scope="session")
+async def tmdb_client() -> AsyncIterator["TMDBClient"]:
+    from watchlist.integrations.tmdb import TMDBClient
+
+    client = TMDBClient("test-key", backoff=0)
+    yield client
+    await client.aclose()
+
+
+@pytest.fixture
+def app(db_session: AsyncSession, tmdb_client: "TMDBClient") -> FastAPI:
     from watchlist.db import get_session
+    from watchlist.integrations.dependencies import get_tmdb_client
     from watchlist.main import create_app
 
     async def override_session() -> AsyncIterator[AsyncSession]:
@@ -81,6 +104,7 @@ def app(db_session: AsyncSession) -> FastAPI:
 
     app = create_app()
     app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_tmdb_client] = lambda: tmdb_client
     return app
 
 
@@ -88,6 +112,26 @@ def app(db_session: AsyncSession) -> FastAPI:
 async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+
+async def register_user(
+    client: AsyncClient,
+    email: str = "user@example.com",
+    username: str = "viewer",
+    password: str = "secret-pass",
+) -> None:
+    token = await fetch_csrf_token(client, "/register")
+    response = await client.post(
+        "/register",
+        data={
+            "csrf_token": token,
+            "email": email,
+            "username": username,
+            "password": password,
+            "password_confirm": password,
+        },
+    )
+    assert response.status_code == 303
 
 
 async def fetch_csrf_token(client: AsyncClient, path: str = "/login") -> str:

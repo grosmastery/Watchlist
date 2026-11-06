@@ -13,3 +13,4 @@ build/
 .idea/
 .vscode/
 src/watchlist/static/css/
+dev-credentials.txt
