@@ -11,6 +11,7 @@ from watchlist.integrations.dependencies import TMDB
 from watchlist.integrations.tmdb import TMDBError, TMDBNotConfiguredError
 from watchlist.integrations.tmdb_schemas import SearchResult
 from watchlist.templating import render_error, templates
+from watchlist.tracking.service import get_entry
 
 logger = logging.getLogger(__name__)
 
@@ -71,4 +72,7 @@ async def title_page(
         return render_error(
             request, status.HTTP_404_NOT_FOUND, "Не знайдено", "Такого тайтлу немає в каталозі."
         )
-    return templates.TemplateResponse(request, "catalog/title.html", {"title": title})
+    entry = await get_entry(session, user.id, title.id)
+    return templates.TemplateResponse(
+        request, "catalog/title.html", {"title": title, "entry": entry}
+    )

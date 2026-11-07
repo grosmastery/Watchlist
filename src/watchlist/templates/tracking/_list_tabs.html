@@ -1,0 +1,14 @@
+{% set total = counts.values() | sum %}
+{% set tab = "rounded-full px-3 py-1 text-sm whitespace-nowrap" %}
+{% set active = "bg-slate-900 text-white" %}
+{% set idle = "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100" %}
+<nav id="list-tabs" aria-label="Фільтр за статусом" class="mb-6 flex flex-wrap gap-2"
+     hx-get="/list/tabs{% if current_status %}?status={{ current_status.value }}{% endif %}"
+     hx-trigger="list-changed from:body" hx-swap="outerHTML">
+  <a href="/list" class="{{ tab }} {{ active if not current_status else idle }}"
+     {% if not current_status %}aria-current="page"{% endif %}>Усі · {{ total }}</a>
+  {% for item in list_statuses %}
+    <a href="/list?status={{ item.value }}" class="{{ tab }} {{ active if current_status == item else idle }}"
+       {% if current_status == item %}aria-current="page"{% endif %}>{{ item.label }} · {{ counts[item] }}</a>
+  {% endfor %}
+</nav>

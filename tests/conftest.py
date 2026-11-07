@@ -139,3 +139,26 @@ async def fetch_csrf_token(client: AsyncClient, path: str = "/login") -> str:
     match = CSRF_PATTERN.search(response.text)
     assert match is not None
     return match.group(1)
+
+
+async def create_title(
+    session: AsyncSession,
+    name: str = "Тестовий серіал",
+    tmdb_id: int = 1,
+    title_type: str = "series",
+) -> int:
+    from watchlist.catalog.models import Title, TitleType
+
+    title = Title(tmdb_id=tmdb_id, type=TitleType(title_type), name=name, overview="", genres=[])
+    session.add(title)
+    await session.flush()
+    return title.id
+
+
+async def create_user(session: AsyncSession, username: str = "viewer") -> int:
+    from watchlist.auth.models import User
+
+    user = User(email=f"{username}@example.com", username=username, password_hash="x")
+    session.add(user)
+    await session.flush()
+    return user.id
