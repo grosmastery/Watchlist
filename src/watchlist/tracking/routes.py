@@ -74,11 +74,6 @@ def parse_rating(value: str) -> int | None:
     return int(value)
 
 
-@router.get("/", response_class=HTMLResponse)
-async def up_next(request: Request, user: RequiredUser) -> HTMLResponse:
-    return templates.TemplateResponse(request, "tracking/up_next.html", {"user": user})
-
-
 @router.get("/list", response_class=HTMLResponse)
 async def my_list(
     request: Request, user: RequiredUser, session: DbSession, status_filter: StatusFilter = None

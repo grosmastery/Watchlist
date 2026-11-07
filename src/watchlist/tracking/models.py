@@ -70,3 +70,15 @@ class UserTitle(Base):
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     title: Mapped[Title] = relationship()
+
+
+class WatchedEpisode(Base):
+    __tablename__ = "watched_episodes"
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    episode_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("episodes.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    watched_at: Mapped[datetime] = mapped_column(server_default=func.now())

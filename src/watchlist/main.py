@@ -25,6 +25,7 @@ from watchlist.integrations.tmdb import (
     TMDBNotFoundError,
 )
 from watchlist.templating import render_error
+from watchlist.tracking.progress_routes import router as progress_router
 from watchlist.tracking.routes import router as tracking_router
 
 logger = logging.getLogger(__name__)
@@ -117,6 +118,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(catalog_router)
     app.include_router(tracking_router)
+    app.include_router(progress_router)
     return app
 
 

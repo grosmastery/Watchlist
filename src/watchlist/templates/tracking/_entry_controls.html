@@ -1,6 +1,6 @@
 {% set target = "#entry-" ~ title_id %}
 {% set select_class = "rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200" %}
-<div id="entry-{{ title_id }}" class="flex flex-wrap items-center gap-2">
+<div id="entry-{{ title_id }}" {% if oob %}hx-swap-oob="true"{% endif %} class="flex flex-wrap items-center gap-2">
   {% if entry %}
     <select name="status" aria-label="Статус"
             hx-patch="/list/{{ title_id }}?view={{ view }}" hx-trigger="change"

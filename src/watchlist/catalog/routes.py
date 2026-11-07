@@ -11,6 +11,7 @@ from watchlist.integrations.dependencies import TMDB
 from watchlist.integrations.tmdb import TMDBError, TMDBNotConfiguredError
 from watchlist.integrations.tmdb_schemas import SearchResult
 from watchlist.templating import render_error, templates
+from watchlist.tracking.progress import up_next_for_title, watched_ids_for_title
 from watchlist.tracking.service import get_entry
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,17 @@ async def title_page(
         return render_error(
             request, status.HTTP_404_NOT_FOUND, "Не знайдено", "Такого тайтлу немає в каталозі."
         )
-    entry = await get_entry(session, user.id, title.id)
-    return templates.TemplateResponse(
-        request, "catalog/title.html", {"title": title, "entry": entry}
-    )
+    context: dict[str, object] = {
+        "title": title,
+        "entry": await get_entry(session, user.id, title.id),
+        "watched_ids": set(),
+        "progress": None,
+        "next_episode": None,
+    }
+    if title.is_series:
+        context["watched_ids"] = await watched_ids_for_title(session, user.id, title.id)
+        item = await up_next_for_title(session, user.id, title.id)
+        if item is not None:
+            context["progress"] = item.progress
+            context["next_episode"] = item.next_episode
+    return templates.TemplateResponse(request, "catalog/title.html", context)

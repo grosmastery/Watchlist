@@ -1,0 +1,54 @@
+{% set aired_episodes = season.episodes | selectattr("air_date") | selectattr("air_date", "le", today) | list %}
+{% set season_watched = season.episodes | selectattr("id", "in", watched_ids) | list | length %}
+{% set season_done = aired_episodes and season_watched >= aired_episodes | length %}
+<details id="season-{{ season.id }}" class="rounded-md border border-slate-200 bg-white"
+         hx-target="#season-{{ season.id }}" hx-swap="outerHTML" {% if open %}open{% endif %}>
+  <summary class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+    <span class="font-medium">{{ season.name or "Сезон " ~ season.number }}</span>
+    <span class="text-sm tabular-nums {{ 'text-emerald-700' if season_done else 'text-slate-500' }}">
+      {{ season_watched }}/{{ season.episodes | length }}{% if season.air_date %} · {{ season.air_date.year }}{% endif %}
+    </span>
+  </summary>
+  <div class="border-t border-slate-100">
+    {% if aired_episodes %}
+      <div class="flex justify-end px-4 py-2">
+        {% if season_done %}
+          <button type="button" hx-delete="/seasons/{{ season.id }}/watched?view=title"
+                  hx-confirm="Зняти позначки з усього сезону?"
+                  class="text-sm text-slate-500 hover:text-slate-900">Зняти позначки з сезону</button>
+        {% else %}
+          <button type="button" hx-post="/seasons/{{ season.id }}/watched?view=title"
+                  class="rounded-md bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200">Позначити сезон</button>
+        {% endif %}
+      </div>
+    {% endif %}
+    <ol class="divide-y divide-slate-100">
+      {% for episode in season.episodes %}
+        {% set aired = episode.air_date and episode.air_date <= today %}
+        {% set watched = episode.id in watched_ids %}
+        <li class="flex items-center gap-3 px-4 py-2 text-sm {{ 'text-slate-400' if not aired }}">
+          {% if not aired %}
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-dashed border-slate-300"
+                  title="Серія ще не вийшла" aria-label="Серія ще не вийшла"></span>
+          {% elif watched %}
+            <button type="button" hx-delete="/episodes/{{ episode.id }}/watched?view=title"
+                    aria-pressed="true" aria-label="Зняти позначку з серії {{ episode.number }}"
+                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white hover:bg-emerald-600">
+              <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z" clip-rule="evenodd"/></svg>
+            </button>
+          {% else %}
+            <button type="button" hx-post="/episodes/{{ episode.id }}/watched?view=title"
+                    aria-pressed="false" aria-label="Позначити серію {{ episode.number }} як переглянуту"
+                    class="h-6 w-6 shrink-0 rounded-full border-2 border-slate-300 hover:border-emerald-500"></button>
+          {% endif %}
+          <span class="w-8 shrink-0 tabular-nums text-slate-500">{{ episode.number }}</span>
+          <span class="min-w-0 flex-1 truncate">{{ episode.name or "Серія " ~ episode.number }}</span>
+          {% if episode.runtime %}<span class="hidden shrink-0 tabular-nums sm:inline">{{ episode.runtime }} хв</span>{% endif %}
+          <span class="w-24 shrink-0 text-right tabular-nums">
+            {% if episode.air_date %}{{ episode.air_date | format_date }}{% else %}дата невідома{% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</details>

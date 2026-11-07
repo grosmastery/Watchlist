@@ -1,0 +1,9 @@
+{% with open=True %}
+  {% include "tracking/_season.html" %}
+{% endwith %}
+{% with oob=True %}
+  {% include "tracking/_progress.html" %}
+{% endwith %}
+{% with title_id=title.id, view="title", oob=True %}
+  {% include "tracking/_entry_controls.html" %}
+{% endwith %}

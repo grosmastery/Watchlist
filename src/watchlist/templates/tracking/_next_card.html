@@ -1,0 +1,38 @@
+{% if item %}
+{% set title = item.title %}
+{% set next = item.next_episode %}
+<article id="next-{{ title.id }}" class="flex gap-4 rounded-md border border-slate-200 bg-white p-3">
+  <a href="/titles/{{ title.id }}" class="aspect-[2/3] w-16 shrink-0 overflow-hidden rounded bg-slate-200">
+    {% set poster = title.poster_path | poster_url("w154") %}
+    {% if poster %}<img src="{{ poster }}" alt="" loading="lazy" class="h-full w-full object-cover">{% endif %}
+  </a>
+  <div class="flex min-w-0 flex-1 flex-col">
+    <a href="/titles/{{ title.id }}" class="truncate font-medium hover:underline">{{ title.name }}</a>
+    {% if next %}
+      <p class="truncate text-sm text-slate-600">
+        <span class="font-medium text-slate-800">{{ next.code }}</span>{% if next.name %} · {{ next.name }}{% endif %}
+      </p>
+    {% endif %}
+    <div class="mt-auto pt-2">
+      <div class="mb-2 h-1.5 overflow-hidden rounded-full bg-slate-200" role="progressbar"
+           aria-label="Прогрес перегляду" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ item.progress.percent }}">
+        <div class="h-full rounded-full bg-emerald-500" style="width: {{ item.progress.percent }}%"></div>
+      </div>
+      <div class="flex items-center justify-between gap-2 text-sm">
+        <span class="text-slate-500 tabular-nums">{{ item.progress.watched }}/{{ item.progress.aired }}</span>
+        {% if item.is_available(today) %}
+          <button type="button" hx-post="/episodes/{{ next.id }}/watched?view=next"
+                  hx-target="#next-{{ title.id }}" hx-swap="outerHTML"
+                  class="rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700">Переглянуто</button>
+        {% elif item.is_upcoming(today) %}
+          <span class="text-slate-600">Вийде {{ next.air_date | format_date }}</span>
+        {% elif next %}
+          <span class="text-slate-500">Дата виходу невідома</span>
+        {% else %}
+          <span class="text-emerald-700">Усе переглянуто</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</article>
+{% endif %}
