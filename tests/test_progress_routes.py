@@ -25,7 +25,7 @@ async def headers(client: AsyncClient) -> dict[str, str]:
 
 
 async def test_up_next_requires_login(client: AsyncClient) -> None:
-    response = await client.get("/")
+    response = await client.get("/up-next")
 
     assert response.status_code == 303
 
@@ -33,7 +33,7 @@ async def test_up_next_requires_login(client: AsyncClient) -> None:
 async def test_up_next_empty_state(client: AsyncClient, db_session: AsyncSession) -> None:
     await login(client, db_session)
 
-    response = await client.get("/")
+    response = await client.get("/up-next")
 
     assert "серіалів зі статусом «Дивлюсь»" in response.text
 
@@ -45,11 +45,11 @@ async def test_marking_episode_updates_up_next(
     series = await create_series(db_session, [THREE_AIRED], name="Мій серіал")
     await add_to_list(db_session, user_id, series.title_id, ListStatus.WATCHING)
 
-    before = await client.get("/")
+    before = await client.get("/up-next")
     response = await client.post(
         f"/episodes/{series.episode(1, 1)}/watched?view=next", headers=await headers(client)
     )
-    after = await client.get("/")
+    after = await client.get("/up-next")
 
     assert "S01E01" in before.text
     assert "Можна дивитись" in before.text
@@ -70,7 +70,7 @@ async def test_future_episode_goes_to_upcoming_section(
     await client.post(
         f"/episodes/{series.episode(1, 1)}/watched?view=next", headers=await headers(client)
     )
-    page = await client.get("/")
+    page = await client.get("/up-next")
 
     assert "Скоро вийде" in page.text
     assert "Можна дивитись" not in page.text
@@ -184,7 +184,7 @@ async def test_progress_is_private(client: AsyncClient, db_session: AsyncSession
 
     await login(client, db_session, "guest")
     page = await client.get(f"/titles/{series.title_id}")
-    up_next_page = await client.get("/")
+    up_next_page = await client.get("/up-next")
 
     assert "0/3" in page.text
     assert "Чужий серіал" not in up_next_page.text

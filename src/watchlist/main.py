@@ -18,6 +18,8 @@ from watchlist.catalog.routes import router as catalog_router
 from watchlist.config import configure_logging, get_settings
 from watchlist.csrf import CSRFError, csrf_middleware
 from watchlist.db import get_engine
+from watchlist.home.cache import TTLCache
+from watchlist.home.routes import router as home_router
 from watchlist.integrations.dependencies import build_tmdb_client
 from watchlist.integrations.tmdb import (
     TMDBError,
@@ -45,7 +47,7 @@ async def handle_login_required(request: Request, _: Exception) -> Response:
     target = request.url.path
     if request.url.query:
         target = f"{target}?{request.url.query}"
-    login_url = "/login" if target == "/" else f"/login?{urlencode({'next': target})}"
+    login_url = f"/login?{urlencode({'next': target})}"
     if request.headers.get("HX-Request"):
         return Response(headers={"HX-Redirect": login_url})
     return RedirectResponse(login_url, status_code=status.HTTP_303_SEE_OTHER)
@@ -107,6 +109,7 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url=None,
     )
+    app.state.home_cache = TTLCache()
     app.middleware("http")(csrf_middleware)
     app.add_exception_handler(LoginRequiredError, handle_login_required)
     app.add_exception_handler(CSRFError, handle_csrf_error)
@@ -116,6 +119,7 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     app.include_router(health.router)
     app.include_router(auth_router)
+    app.include_router(home_router)
     app.include_router(catalog_router)
     app.include_router(tracking_router)
     app.include_router(progress_router)

@@ -1,0 +1,11 @@
+{% if error %}
+  <div role="alert" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Не вдалося завантажити дані з TMDB. Спробуйте трохи пізніше.</div>
+{% elif cards %}
+  <ul class="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2">
+    {% for card in cards %}
+      {% include "home/_card.html" %}
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="text-sm text-slate-600">Поки що тут нічого немає.</p>
+{% endif %}

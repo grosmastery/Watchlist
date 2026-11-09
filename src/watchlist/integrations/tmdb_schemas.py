@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+MediaType = Literal["tv", "movie"]
+
 
 class TMDBModel(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -32,6 +34,14 @@ class SearchResult(TMDBModel):
     @classmethod
     def normalize_blank(cls, value: object) -> object:
         return blank_to_none(value)
+
+
+class BrowseItem(SearchResult):
+    popularity: float = 0
+    vote_count: int = 0
+    genre_ids: list[int] = Field(default_factory=list)
+    original_language: str = ""
+    adult: bool = False
 
 
 class SearchPage(TMDBModel):

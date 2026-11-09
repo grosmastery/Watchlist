@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Головна{% endblock %}
+
+{% macro placeholder(section_id, heading, url) %}
+  <section id="{{ section_id }}" class="mb-10" hx-get="{{ url }}" hx-trigger="load" hx-swap="outerHTML">
+    <h2 class="mb-4 text-xl font-semibold tracking-tight">{{ heading }}</h2>
+    <div class="flex gap-4 overflow-hidden" aria-hidden="true">
+      {% for _ in range(6) %}
+        <div class="aspect-[2/3] w-36 shrink-0 animate-pulse rounded-md bg-slate-200 sm:w-40"></div>
+      {% endfor %}
+    </div>
+  </section>
+{% endmacro %}
+
+{% block content %}
+  {{ placeholder("new-section", "Новинки", "/home/new") }}
+  {{ placeholder("popular-section", "Популярні", "/home/popular") }}
+  {% if current_user %}
+    {{ placeholder("recommendations-section", "Можливо, вам будуть цікаві", "/home/recommendations") }}
+  {% endif %}
+{% endblock %}

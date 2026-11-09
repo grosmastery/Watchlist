@@ -34,25 +34,25 @@ async def logout(client: AsyncClient) -> None:
     assert response.status_code == 303
 
 
-async def test_home_requires_login(client: AsyncClient) -> None:
+async def test_home_is_public(client: AsyncClient) -> None:
     response = await client.get("/")
 
-    assert response.status_code == 303
-    assert response.headers["location"] == "/login"
+    assert response.status_code == 200
+    assert "Вхід" in response.text
 
 
 async def test_login_redirect_keeps_requested_path(client: AsyncClient) -> None:
-    response = await client.get("/?status=watching")
+    response = await client.get("/list?status=watching")
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/login?next=%2F%3Fstatus%3Dwatching"
+    assert response.headers["location"] == "/login?next=%2Flist%3Fstatus%3Dwatching"
 
 
 async def test_htmx_request_gets_hx_redirect(client: AsyncClient) -> None:
-    response = await client.get("/", headers={"HX-Request": "true"})
+    response = await client.get("/up-next", headers={"HX-Request": "true"})
 
     assert response.status_code == 200
-    assert response.headers["HX-Redirect"] == "/login"
+    assert response.headers["HX-Redirect"] == "/login?next=%2Fup-next"
 
 
 async def test_register_logs_user_in(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -110,7 +110,7 @@ async def test_register_rejects_taken_email(client: AsyncClient) -> None:
 async def test_login_and_logout(client: AsyncClient, login: str) -> None:
     await register(client)
     await logout(client)
-    assert (await client.get("/")).status_code == 303
+    assert (await client.get("/up-next")).status_code == 303
 
     token = await fetch_csrf_token(client)
     response = await client.post(
@@ -119,7 +119,7 @@ async def test_login_and_logout(client: AsyncClient, login: str) -> None:
 
     assert response.status_code == 303
     assert response.headers["location"] == "/"
-    assert (await client.get("/")).status_code == 200
+    assert (await client.get("/up-next")).status_code == 200
 
 
 async def test_logout_deletes_session(client: AsyncClient, db_session: AsyncSession) -> None:
@@ -128,7 +128,7 @@ async def test_logout_deletes_session(client: AsyncClient, db_session: AsyncSess
     await logout(client)
 
     assert await db_session.scalar(select(func.count()).select_from(UserSession)) == 0
-    assert (await client.get("/")).status_code == 303
+    assert (await client.get("/up-next")).status_code == 303
 
 
 async def test_login_with_wrong_password(client: AsyncClient) -> None:

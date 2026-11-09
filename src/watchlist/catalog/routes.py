@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Path, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from watchlist.auth.dependencies import DbSession, RequiredUser
+from watchlist.auth.dependencies import CurrentUser, DbSession, RequiredUser
 from watchlist.catalog.models import Title, TitleType
 from watchlist.catalog.service import (
     get_or_import_title,
@@ -31,11 +31,14 @@ CSRF = [Depends(csrf_protect)]
 @router.get("/search", response_class=HTMLResponse)
 async def search(
     request: Request,
-    user: RequiredUser,
+    user: CurrentUser,
     client: TMDB,
     q: Annotated[str, Query(max_length=QUERY_MAX_LENGTH)] = "",
 ) -> HTMLResponse:
     query = q.strip()
+    is_htmx = bool(request.headers.get("HX-Request"))
+    if is_htmx and not query:
+        return HTMLResponse("")
     results: list[SearchResult] = []
     error: str | None = None
     if query:
@@ -47,11 +50,7 @@ async def search(
             logger.exception("TMDB search failed")
             error = "Пошук тимчасово недоступний. Спробуйте трохи пізніше."
     context = {"query": query, "results": results, "error": error}
-    template = (
-        "catalog/_search_results.html"
-        if request.headers.get("HX-Request")
-        else "catalog/search.html"
-    )
+    template = "catalog/_search_suggestions.html" if is_htmx else "catalog/search.html"
     return templates.TemplateResponse(request, template, context)
 
 

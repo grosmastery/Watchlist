@@ -10,11 +10,23 @@ from tests.test_catalog_service import mock_series
 from watchlist.catalog.models import Title
 
 
-async def test_search_requires_login(client: AsyncClient) -> None:
-    response = await client.get("/search?q=test")
+async def test_guest_can_search_but_opening_title_needs_login(
+    client: AsyncClient, tmdb_mock: respx.MockRouter
+) -> None:
+    tmdb_mock.get("/search/multi").respond(json=tmdb_fakes.search_page(tmdb_fakes.search_tv()))
 
-    assert response.status_code == 303
-    assert response.headers["location"].startswith("/login")
+    results = await client.get("/search", params={"q": "гра"})
+    opened = await client.get("/tmdb/tv/1399")
+
+    assert "Гра престолів" in results.text
+    assert opened.status_code == 303
+    assert opened.headers["location"] == "/login?next=%2Ftmdb%2Ftv%2F1399"
+
+
+async def test_htmx_search_with_empty_query_is_blank(client: AsyncClient) -> None:
+    response = await client.get("/search", params={"q": "  "}, headers={"HX-Request": "true"})
+
+    assert response.text == ""
 
 
 async def test_search_page_without_query(client: AsyncClient) -> None:
@@ -50,6 +62,7 @@ async def test_htmx_search_returns_fragment(
     response = await client.get("/search", params={"q": "гра"}, headers={"HX-Request": "true"})
 
     assert "Гра престолів" in response.text
+    assert "Усі результати" in response.text
     assert "<html" not in response.text
 
 

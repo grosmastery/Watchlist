@@ -1,0 +1,23 @@
+{% if error %}
+  <p class="px-3 py-3 text-sm text-amber-800">{{ error }}</p>
+{% elif not results %}
+  <p class="px-3 py-3 text-sm text-slate-600">За запитом «{{ query }}» нічого не знайдено.</p>
+{% else %}
+  <ul>
+    {% for item in results[:6] %}
+      <li>
+        <a href="/tmdb/{{ item.media_type }}/{{ item.id }}" class="flex items-center gap-3 px-3 py-2 hover:bg-slate-100">
+          <div class="h-14 w-10 shrink-0 overflow-hidden rounded bg-slate-200">
+            {% set poster = item.poster_path | poster_url("w92") %}
+            {% if poster %}<img src="{{ poster }}" alt="" loading="lazy" class="h-full w-full object-cover">{% endif %}
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium">{{ item.name }}</p>
+            <p class="text-xs text-slate-500">{{ "Серіал" if item.media_type == "tv" else "Фільм" }}{% if item.release_date %} · {{ item.release_date.year }}{% endif %}</p>
+          </div>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <a href="/search?q={{ query | urlencode }}" class="block border-t border-slate-100 px-3 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-100">Усі результати</a>
+{% endif %}

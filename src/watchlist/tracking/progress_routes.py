@@ -31,7 +31,7 @@ SeasonId = Annotated[int, Path(gt=0)]
 CSRF = [Depends(csrf_protect)]
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/up-next", response_class=HTMLResponse)
 async def up_next_page(request: Request, user: RequiredUser, session: DbSession) -> HTMLResponse:
     today = utc_today()
     items = await up_next(session, user.id, today)

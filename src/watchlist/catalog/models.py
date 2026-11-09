@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from watchlist.db import Base
+from watchlist.integrations.tmdb_schemas import MediaType
 
 
 class TitleType(enum.StrEnum):
@@ -24,7 +25,7 @@ class TitleType(enum.StrEnum):
     MOVIE = "movie"
 
     @property
-    def tmdb_type(self) -> str:
+    def tmdb_type(self) -> MediaType:
         return "tv" if self is TitleType.SERIES else "movie"
 
     @classmethod

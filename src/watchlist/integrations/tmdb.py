@@ -7,9 +7,12 @@ from typing import Any, Self
 import httpx
 
 from watchlist.integrations.tmdb_schemas import (
+    BrowseItem,
+    MediaType,
     MovieDetails,
     SearchPage,
     SeasonDetails,
+    SeasonSummary,
     SeriesDetails,
     SeriesWithEpisodes,
 )
@@ -147,6 +150,52 @@ class TMDBClient:
             if item.get("media_type") in {"tv", "movie"}
         ]
         return SearchPage.model_validate({**payload, "results": results})
+
+    def _lacks_translation(self, item: Mapping[str, Any]) -> bool:
+        known = {self.language[:2], self.fallback_language[:2]}
+        return item.get("name") == item.get("original_name") and (
+            item.get("original_language") not in known
+        )
+
+    async def _browse(
+        self,
+        path: str,
+        media_type: MediaType,
+        params: Mapping[str, str | int] | None = None,
+        page: int = 1,
+    ) -> list[BrowseItem]:
+        query = {**(params or {}), "page": page}
+        payload = await self._get(path, query)
+        items = [normalize(item) for item in payload.get("results", [])]
+        if any(self._lacks_translation(item) for item in items):
+            fallback = await self._get(path, {**query, "language": self.fallback_language})
+            names = {
+                item["id"]: normalize(item).get("name") for item in fallback.get("results", [])
+            }
+            for item in items:
+                if self._lacks_translation(item) and names.get(item["id"]):
+                    item["name"] = names[item["id"]]
+        return [BrowseItem.model_validate({"media_type": media_type, **item}) for item in items]
+
+    async def discover(
+        self, media_type: MediaType, params: Mapping[str, str | int], page: int = 1
+    ) -> list[BrowseItem]:
+        query = {"include_adult": "false", "sort_by": "popularity.desc", **params}
+        return await self._browse(f"/discover/{media_type}", media_type, query, page)
+
+    async def trending(self, media_type: MediaType, page: int = 1) -> list[BrowseItem]:
+        return await self._browse(f"/trending/{media_type}/week", media_type, page=page)
+
+    async def get_recommendations(self, media_type: MediaType, tmdb_id: int) -> list[BrowseItem]:
+        return await self._browse(f"/{media_type}/{tmdb_id}/recommendations", media_type)
+
+    async def get_genres(self, media_type: MediaType) -> dict[int, str]:
+        payload = await self._get(f"/genre/{media_type}/list")
+        return {genre["id"]: genre["name"] for genre in payload.get("genres", [])}
+
+    async def get_season_summaries(self, tmdb_id: int) -> list[SeasonSummary]:
+        payload = await self._get(f"/tv/{tmdb_id}")
+        return [SeasonSummary.model_validate(item) for item in payload.get("seasons", [])]
 
     async def get_movie(self, tmdb_id: int) -> MovieDetails:
         path = f"/movie/{tmdb_id}"

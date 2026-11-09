@@ -1,0 +1,13 @@
+<li class="w-36 shrink-0 snap-start sm:w-40">
+  <a href="{{ card.url }}" class="group block">
+    <div class="relative aspect-[2/3] overflow-hidden rounded-md bg-slate-200">
+      <img src="{{ card.poster_path | poster_url('w342') }}" alt="" loading="lazy" class="h-full w-full object-cover transition group-hover:opacity-90">
+      {% if card.badge %}
+        <span class="absolute top-2 left-2 rounded bg-slate-900/85 px-1.5 py-0.5 text-xs font-medium text-white">{{ card.badge }}</span>
+      {% endif %}
+    </div>
+    <p class="mt-2 line-clamp-2 text-sm font-medium leading-snug group-hover:underline">{{ card.name }}</p>
+    <p class="text-xs text-slate-500">{{ card.subtitle }}</p>
+    {% if card.note %}<p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ card.note }}</p>{% endif %}
+  </a>
+</li>
