@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
+from datetime import date
 from typing import Any, Self
 
 import httpx
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.themoviedb.org/3"
 APPEND_LIMIT = 20
+CHANGES_MAX_PAGES = 200
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 FIELD_ALIASES = {
     "title": "name",
@@ -155,6 +157,20 @@ class TMDBClient:
         path = f"/tv/{tmdb_id}"
         payload = await self._with_fallback_overview(path, await self._get(path))
         return SeriesDetails.model_validate(normalize(payload))
+
+    async def get_changed_series(self, start: date, end: date) -> set[int]:
+        changed: set[int] = set()
+        page = 1
+        while page <= CHANGES_MAX_PAGES:
+            payload = await self._get(
+                "/tv/changes",
+                {"start_date": start.isoformat(), "end_date": end.isoformat(), "page": page},
+            )
+            changed.update(item["id"] for item in payload.get("results", []))
+            if page >= payload.get("total_pages", 1):
+                break
+            page += 1
+        return changed
 
     async def get_season(self, tmdb_id: int, season_number: int) -> SeasonDetails:
         payload = await self._get(f"/tv/{tmdb_id}/season/{season_number}")

@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from typing import Literal
 
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     tmdb_fallback_language: str = "en-US"
     log_level: str = "INFO"
     session_ttl_days: int = 30
+    sync_interval_hours: int = 24
 
     @field_validator("tmdb_api_key", mode="before")
     @classmethod
@@ -34,3 +36,8 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def configure_logging(settings: Settings) -> None:
+    logging.basicConfig(level=settings.log_level)
+    logging.getLogger("httpx").setLevel(logging.WARNING)

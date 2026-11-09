@@ -15,7 +15,7 @@ from watchlist import health
 from watchlist.auth.dependencies import LoginRequiredError
 from watchlist.auth.routes import router as auth_router
 from watchlist.catalog.routes import router as catalog_router
-from watchlist.config import get_settings
+from watchlist.config import configure_logging, get_settings
 from watchlist.csrf import CSRFError, csrf_middleware
 from watchlist.db import get_engine
 from watchlist.integrations.dependencies import build_tmdb_client
@@ -99,7 +99,7 @@ async def handle_validation_error(request: Request, _: Exception) -> Response:
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    logging.basicConfig(level=settings.log_level)
+    configure_logging(settings)
     app = FastAPI(
         title="Watchlist",
         debug=settings.debug,

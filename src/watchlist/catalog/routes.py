@@ -1,12 +1,18 @@
 import logging
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Path, Query, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Path, Query, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from watchlist.auth.dependencies import DbSession, RequiredUser
-from watchlist.catalog.models import TitleType
-from watchlist.catalog.service import get_or_import_title, get_title, search_titles
+from watchlist.catalog.models import Title, TitleType
+from watchlist.catalog.service import (
+    get_or_import_title,
+    get_title,
+    import_title,
+    search_titles,
+)
+from watchlist.csrf import csrf_protect
 from watchlist.integrations.dependencies import TMDB
 from watchlist.integrations.tmdb import TMDBError, TMDBNotConfiguredError
 from watchlist.integrations.tmdb_schemas import SearchResult
@@ -19,6 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["catalog"])
 
 QUERY_MAX_LENGTH = 200
+CSRF = [Depends(csrf_protect)]
 
 
 @router.get("/search", response_class=HTMLResponse)
@@ -57,6 +64,26 @@ async def open_tmdb_title(
     tmdb_id: Annotated[int, Path(gt=0)],
 ) -> RedirectResponse:
     title_id = await get_or_import_title(session, client, TitleType.from_tmdb(media_type), tmdb_id)
+    await session.commit()
+    return RedirectResponse(f"/titles/{title_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post(
+    "/titles/{title_id}/refresh", dependencies=[Depends(csrf_protect)], response_model=None
+)
+async def refresh_title(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    client: TMDB,
+    title_id: Annotated[int, Path(gt=0)],
+) -> Response:
+    title = await session.get(Title, title_id)
+    if title is None:
+        return render_error(
+            request, status.HTTP_404_NOT_FOUND, "Не знайдено", "Такого тайтлу немає в каталозі."
+        )
+    await import_title(session, client, title.type, title.tmdb_id)
     await session.commit()
     return RedirectResponse(f"/titles/{title_id}", status_code=status.HTTP_303_SEE_OTHER)
 

@@ -25,6 +25,11 @@
         {% if title.status %}<span>{{ title.status | status_label }}</span>{% endif %}
         {% if title.is_series %}<span>Сезонів: {{ title.seasons | length }}</span>{% endif %}
       </p>
+      <form method="post" action="/titles/{{ title.id }}/refresh" class="mt-1 flex items-center gap-2 text-xs text-slate-500">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% if title.last_synced_at %}<span>Оновлено {{ title.last_synced_at | format_date }}</span>{% endif %}
+        <button type="submit" class="underline hover:text-slate-800">Оновити з TMDB</button>
+      </form>
       <div class="mt-4">
         {% with title_id=title.id, view="title" %}
           {% include "tracking/_entry_controls.html" %}
