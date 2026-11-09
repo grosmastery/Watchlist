@@ -1,11 +1,22 @@
+{% set arrow = "absolute top-[140px] z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-raised/90 text-fg opacity-0 shadow-xl shadow-black/60 backdrop-blur transition group-hover/row:opacity-100 hover:bg-accent hover:text-on-accent focus-visible:opacity-100 md:flex" %}
 {% if error %}
-  <div role="alert" class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Не вдалося завантажити дані з TMDB. Спробуйте трохи пізніше.</div>
+  <div role="alert" class="alert">Не вдалося завантажити дані з TMDB. Спробуйте трохи пізніше.</div>
 {% elif cards %}
-  <ul class="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2">
-    {% for card in cards %}
-      {% include "home/_card.html" %}
-    {% endfor %}
-  </ul>
+  <div class="group/row relative">
+    <ul class="no-scrollbar -mx-4 flex snap-x scroll-px-4 gap-4 overflow-x-auto px-4 pt-2 pb-3 sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:-mx-8 lg:scroll-px-8 lg:px-8">
+      {% for card in cards %}
+        {% include "home/_card.html" %}
+      {% endfor %}
+    </ul>
+    <button type="button" aria-label="Гортати назад" class="{{ arrow }} left-0 lg:-translate-x-1/2"
+            hx-on:click="const row = this.parentElement.querySelector('ul'); row.scrollBy({left: -row.clientWidth * 0.8, behavior: 'smooth'})">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true"><path d="m12.5 4.5-5.5 5.5 5.5 5.5"/></svg>
+    </button>
+    <button type="button" aria-label="Гортати вперед" class="{{ arrow }} right-0 lg:translate-x-1/2"
+            hx-on:click="const row = this.parentElement.querySelector('ul'); row.scrollBy({left: row.clientWidth * 0.8, behavior: 'smooth'})">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true"><path d="m7.5 4.5 5.5 5.5-5.5 5.5"/></svg>
+    </button>
+  </div>
 {% else %}
-  <p class="text-sm text-slate-600">Поки що тут нічого немає.</p>
+  <p class="text-sm text-muted">Поки що тут нічого немає.</p>
 {% endif %}

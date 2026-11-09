@@ -1,0 +1,15 @@
+<section id="hero-section" class="relative isolate flex h-[68vh] max-h-[680px] min-h-[440px] items-end overflow-hidden">
+  <img src="{{ hero.backdrop_path | poster_url('w1280') }}"
+       srcset="{{ hero.backdrop_path | poster_url('w780') }} 780w, {{ hero.backdrop_path | poster_url('w1280') }} 1280w"
+       sizes="100vw" alt="" fetchpriority="high"
+       class="absolute inset-0 -z-20 h-full w-full object-cover object-[center_20%]">
+  <div class="absolute inset-0 -z-10 bg-linear-to-t from-canvas via-canvas/35 to-canvas/10"></div>
+  <div class="absolute inset-0 -z-10 bg-linear-to-r from-canvas/90 via-canvas/30 to-transparent"></div>
+  <div class="page pb-10 sm:pb-14">
+    <p class="text-sm font-bold tracking-widest text-accent-soft uppercase">У тренді цього тижня</p>
+    <h2 class="mt-2 max-w-3xl font-display text-4xl leading-tight font-medium tracking-wide sm:text-6xl">{{ hero.name }}</h2>
+    <p class="mt-2 text-sm font-semibold text-muted">{{ hero.subtitle }}</p>
+    <p class="mt-3 line-clamp-3 max-w-xl leading-relaxed text-fg/85">{{ hero.overview }}</p>
+    <a href="{{ hero.url }}" class="btn btn-primary mt-6 px-6 py-3 text-base">Детальніше</a>
+  </div>
+</section>

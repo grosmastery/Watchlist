@@ -14,6 +14,7 @@ FEED_SIZE = 20
 NEW_WINDOW = timedelta(days=90)
 SEASON_PAGES = 2
 TRENDING_PAGES = 2
+HERO_POOL = 6
 ANIMATION_GENRE = 16
 ANIME_LANGUAGE = "ja"
 NON_FICTION_GENRES = frozenset({10763, 10764, 10766, 10767})
@@ -41,6 +42,19 @@ class Card:
     @property
     def url(self) -> str:
         return f"/tmdb/{self.media_type}/{self.tmdb_id}"
+
+    @property
+    def is_new_season(self) -> bool:
+        return self.badge == BADGE_NEW_SEASON
+
+
+@dataclass(frozen=True, slots=True)
+class Hero:
+    url: str
+    name: str
+    subtitle: str
+    overview: str
+    backdrop_path: str
 
 
 def default_subtitle(item: BrowseItem) -> str:
@@ -226,6 +240,29 @@ async def popular_anime_feed(client: TMDBClient, today: date) -> list[Card]:
     pages = await asyncio.gather(client.discover("tv", params), client.discover("movie", params))
     items = sorted(flatten(pages), key=lambda item: item.popularity, reverse=True)
     return interleave([to_card(item) for item in items if is_listable(item)])
+
+
+async def hero_feed(client: TMDBClient, today: date) -> Hero | None:
+    series, movies = await asyncio.gather(client.trending("tv"), client.trending("movie"))
+    regular = [
+        *(item for item in series if is_regular_series(item)),
+        *(item for item in movies if not is_anime(item)),
+    ]
+    pool = sorted(
+        (item for item in regular if is_listable(item) and item.backdrop_path and item.overview),
+        key=lambda item: item.popularity,
+        reverse=True,
+    )[:HERO_POOL]
+    if not pool:
+        return None
+    item = pool[today.toordinal() % len(pool)]
+    return Hero(
+        url=to_card(item).url,
+        name=item.name,
+        subtitle=default_subtitle(item),
+        overview=item.overview,
+        backdrop_path=item.backdrop_path or "",
+    )
 
 
 FeedLoader = Callable[[TMDBClient, date], Awaitable[list[Card]]]

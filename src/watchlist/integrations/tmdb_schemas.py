@@ -37,6 +37,7 @@ class SearchResult(TMDBModel):
 
 
 class BrowseItem(SearchResult):
+    backdrop_path: str | None = None
     popularity: float = 0
     vote_count: int = 0
     genre_ids: list[int] = Field(default_factory=list)

@@ -1,12 +1,9 @@
-{% set tab_class = "rounded-full px-3 py-1 text-sm whitespace-nowrap" %}
-{% set active = "bg-slate-900 text-white" %}
-{% set idle = "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100" %}
-<section id="{{ section }}-section" class="mb-10 transition-opacity [&.htmx-request]:opacity-50">
-  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <h2 class="text-xl font-semibold tracking-tight">{{ heading }}</h2>
+<section id="{{ section }}-section" class="mb-12 transition-opacity [&.htmx-request]:opacity-50">
+  <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
+    <h2 class="heading-section">{{ heading }}</h2>
     <div class="flex flex-wrap gap-2" role="group" aria-label="{{ heading }}: категорія">
       {% for key, label in tabs %}
-        <button type="button" class="{{ tab_class }} {{ active if key == current_tab else idle }}"
+        <button type="button" class="chip {{ 'chip-active' if key == current_tab }}"
                 aria-pressed="{{ 'true' if key == current_tab else 'false' }}"
                 hx-get="/home/{{ section }}?tab={{ key }}"
                 hx-target="#{{ section }}-section" hx-swap="outerHTML"

@@ -1,13 +1,13 @@
-<li class="w-36 shrink-0 snap-start sm:w-40">
-  <a href="{{ card.url }}" class="group block">
-    <div class="relative aspect-[2/3] overflow-hidden rounded-md bg-slate-200">
-      <img src="{{ card.poster_path | poster_url('w342') }}" alt="" loading="lazy" class="h-full w-full object-cover transition group-hover:opacity-90">
+<li class="w-36 shrink-0 snap-start sm:w-44">
+  <a href="{{ card.url }}" class="group block rounded-lg">
+    <div class="poster shadow-lg ring-1 shadow-black/50 ring-white/10 transition duration-300 group-hover:ring-2 group-hover:ring-accent-soft motion-safe:group-hover:-translate-y-1">
+      <img src="{{ card.poster_path | poster_url('w342') }}" alt="" loading="lazy" class="h-full w-full object-cover transition duration-500 motion-safe:group-hover:scale-105">
       {% if card.badge %}
-        <span class="absolute top-2 left-2 rounded bg-slate-900/85 px-1.5 py-0.5 text-xs font-medium text-white">{{ card.badge }}</span>
+        <span class="absolute top-2 left-2 rounded-md px-2 py-1 text-xs font-extrabold shadow-md shadow-black/40 {{ 'bg-accent text-on-accent' if card.is_new_season else 'bg-fg text-canvas' }}">{{ card.badge }}</span>
       {% endif %}
     </div>
-    <p class="mt-2 line-clamp-2 text-sm font-medium leading-snug group-hover:underline">{{ card.name }}</p>
-    <p class="text-xs text-slate-500">{{ card.subtitle }}</p>
-    {% if card.note %}<p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ card.note }}</p>{% endif %}
+    <p class="mt-3 line-clamp-2 text-sm leading-snug font-bold transition group-hover:text-accent-soft">{{ card.name }}</p>
+    <p class="mt-0.5 text-xs {{ 'font-bold text-accent-soft' if card.is_new_season else 'text-faint' }}">{{ card.subtitle }}</p>
+    {% if card.note %}<p class="mt-1 line-clamp-2 text-xs leading-snug text-muted">{{ card.note }}</p>{% endif %}
   </a>
 </li>

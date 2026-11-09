@@ -1,21 +1,21 @@
-<div id="progress-{{ title.id }}" {% if oob %}hx-swap-oob="true"{% endif %} class="mt-4 max-w-md">
+<div id="progress-{{ title.id }}" {% if oob %}hx-swap-oob="true"{% endif %} class="mt-5 max-w-md">
   {% if progress and progress.total %}
-    <div class="mb-1 flex items-baseline justify-between text-sm text-slate-600">
+    <div class="mb-1.5 flex items-baseline justify-between text-sm text-muted">
       <span>Переглянуто {{ progress.watched }} з {{ progress.aired }}{% if progress.total > progress.aired %} (усього {{ progress.total }}){% endif %}</span>
-      <span class="tabular-nums">{{ progress.percent }}%</span>
+      <span class="font-bold text-fg tabular-nums">{{ progress.percent }}%</span>
     </div>
-    <div class="h-2 overflow-hidden rounded-full bg-slate-200" role="progressbar"
+    <div class="progress-track h-2" role="progressbar"
          aria-label="Прогрес перегляду" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress.percent }}">
-      <div class="h-full rounded-full bg-emerald-500 transition-all" style="width: {{ progress.percent }}%"></div>
+      <div class="progress-fill" style="width: {{ progress.percent }}%"></div>
     </div>
     {% if next_episode %}
-      <p class="mt-2 text-sm text-slate-600">
-        Далі: <span class="font-medium text-slate-800">{{ next_episode.code }}</span>
+      <p class="mt-2 text-sm text-muted">
+        Далі: <span class="font-bold text-fg">{{ next_episode.code }}</span>
         {% if next_episode.name %}· {{ next_episode.name }}{% endif %}
         {% if next_episode.air_date and next_episode.air_date > today %}· вийде {{ next_episode.air_date | format_date }}{% endif %}
       </p>
     {% elif progress.is_complete %}
-      <p class="mt-2 text-sm text-emerald-700">Усі серії переглянуто.</p>
+      <p class="mt-2 text-sm font-semibold text-accent-soft">Усі серії переглянуто.</p>
     {% endif %}
   {% endif %}
 </div>

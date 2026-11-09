@@ -6,7 +6,15 @@ from fastapi.responses import HTMLResponse
 
 from watchlist.auth.dependencies import CurrentUser, DbSession, RequiredUser
 from watchlist.home.cache import TTLCache
-from watchlist.home.feeds import NEW_FEEDS, POPULAR_FEEDS, Card, FeedLoader, FeedTab
+from watchlist.home.feeds import (
+    NEW_FEEDS,
+    POPULAR_FEEDS,
+    Card,
+    FeedLoader,
+    FeedTab,
+    Hero,
+    hero_feed,
+)
 from watchlist.home.recommendations import (
     GenreNames,
     fingerprint,
@@ -70,6 +78,19 @@ async def feed_section(
         "error": error,
     }
     return templates.TemplateResponse(request, "home/_feed_section.html", context)
+
+
+@router.get("/home/hero", response_class=HTMLResponse)
+async def hero_section(request: Request, cache: Cache, client: TMDB) -> HTMLResponse:
+    today = utc_today()
+    hero: Hero | None = None
+    try:
+        hero = await cache.get_or_load("hero", FEED_TTL, lambda: hero_feed(client, today))
+    except TMDBError as failure:
+        logger.warning("Could not load the hero banner: %s", failure)
+    if hero is None:
+        return HTMLResponse("")
+    return templates.TemplateResponse(request, "home/_hero.html", {"hero": hero})
 
 
 @router.get("/home/new", response_class=HTMLResponse)

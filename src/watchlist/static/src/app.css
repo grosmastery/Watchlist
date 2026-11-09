@@ -1,2 +1,136 @@
 @import "tailwindcss";
 @source "../../templates";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Oswald", "Manrope", ui-sans-serif, sans-serif;
+
+  --color-canvas: #09090c;
+  --color-surface: #131318;
+  --color-raised: #1f1f27;
+  --color-line: rgb(255 255 255 / 0.09);
+  --color-fg: #f5f5f6;
+  --color-muted: #a8a8b3;
+  --color-faint: #85858f;
+
+  --color-accent: #a31d46;
+  --color-accent-soft: #f0728f;
+  --color-on-accent: #ffffff;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    scrollbar-gutter: stable;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
+  a,
+  button,
+  summary {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-soft;
+  }
+
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .heading-page {
+    @apply font-display text-3xl font-medium tracking-wide sm:text-4xl;
+  }
+
+  .heading-section {
+    @apply font-display text-2xl font-medium tracking-wide;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-on-accent hover:brightness-115;
+  }
+
+  .btn-secondary {
+    @apply bg-raised text-fg hover:bg-white/15;
+  }
+
+  .btn-ghost {
+    @apply text-muted hover:bg-raised hover:text-fg;
+  }
+
+  .field {
+    @apply block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg transition outline-none placeholder:text-faint focus:border-accent-soft focus:ring-2 focus:ring-accent/40;
+  }
+
+  .field-invalid {
+    @apply border-red-400 focus:border-red-400 focus:ring-red-400/30;
+  }
+
+  .link {
+    @apply font-semibold text-accent-soft hover:underline;
+  }
+
+  .nav-link {
+    @apply rounded text-sm font-semibold text-muted transition hover:text-fg;
+  }
+
+  .nav-link-active {
+    @apply text-accent-soft hover:text-accent-soft;
+  }
+
+  .chip {
+    @apply rounded-full bg-raised px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap text-muted transition hover:bg-white/15 hover:text-fg;
+  }
+
+  .chip-active {
+    @apply bg-accent text-on-accent hover:bg-accent hover:text-on-accent;
+  }
+
+  .panel {
+    @apply rounded-xl border border-line bg-surface;
+  }
+
+  .empty-state {
+    @apply rounded-xl border border-dashed border-white/15 px-6 py-12 text-center text-muted;
+  }
+
+  .alert {
+    @apply rounded-lg border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200;
+  }
+
+  .alert-danger {
+    @apply border-red-400/30 bg-red-400/10 text-red-200;
+  }
+
+  .poster {
+    @apply relative aspect-[2/3] overflow-hidden rounded-lg bg-raised;
+  }
+
+  .progress-track {
+    @apply overflow-hidden rounded-full bg-white/10;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full bg-accent transition-all;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

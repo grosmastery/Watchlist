@@ -1,8 +1,8 @@
-<section id="recommendations-section" class="mb-10">
-  <h2 class="mb-4 text-xl font-semibold tracking-tight">Можливо, вам будуть цікаві</h2>
+<section id="recommendations-section" class="mb-12">
+  <h2 class="heading-section mb-2">Можливо, вам будуть цікаві</h2>
   {% if has_seeds %}
     {% include "home/_cards_row.html" %}
   {% else %}
-    <p class="rounded-md border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm text-slate-600">Додайте кілька тайтлів у свій список і оцініть їх, тоді тут з'являться рекомендації.</p>
+    <p class="empty-state text-sm">Додайте кілька тайтлів у свій список і оцініть їх, тоді тут з'являться рекомендації.</p>
   {% endif %}
 </section>

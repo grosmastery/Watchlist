@@ -1,5 +1,5 @@
 {% set target = "#entry-" ~ title_id %}
-{% set select_class = "rounded-md border border-slate-300 bg-white py-1.5 pl-2 pr-8 text-sm shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200" %}
+{% set select_class = "field w-auto py-1.5 pr-8 pl-2" %}
 <div id="entry-{{ title_id }}" {% if oob %}hx-swap-oob="true"{% endif %} class="flex flex-wrap items-center gap-2">
   {% if entry %}
     <select name="status" aria-label="Статус"
@@ -20,7 +20,7 @@
     <button type="button"
             hx-delete="/list/{{ title_id }}?view={{ view }}" hx-confirm="Прибрати зі списку?"
             hx-target="{{ '#row-' ~ title_id if view == 'list' else target }}" hx-swap="outerHTML"
-            class="rounded-md px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-100 hover:text-red-600">
+            class="btn btn-ghost px-2 py-1.5 font-semibold hover:text-red-300">
       Прибрати
     </button>
   {% else %}
@@ -32,7 +32,7 @@
           <option value="{{ item.value }}" {% if item.value == "planned" %}selected{% endif %}>{{ item.label }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700">
+      <button type="submit" class="btn btn-primary px-3 py-1.5">
         Додати до списку
       </button>
     </form>

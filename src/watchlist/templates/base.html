@@ -4,24 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Watchlist{% endblock %} · Watchlist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Oswald:wght@400..600&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
   <script src="https://unpkg.com/htmx.org@2.0.11/dist/htmx.min.js"
           integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg"
           crossorigin="anonymous" defer></script>
 </head>
-<body class="flex min-h-full flex-col bg-slate-50 text-slate-900 antialiased"
+<body class="flex min-h-full flex-col bg-canvas text-fg antialiased"
       hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
-  <header class="border-b border-slate-200 bg-white">
-    <nav class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3">
+  <header class="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-lg">
+    <nav class="page flex flex-wrap items-center justify-between gap-x-8 gap-y-3 py-3">
       <div class="flex items-center gap-6">
-        <a href="/" class="text-lg font-semibold tracking-tight">Watchlist</a>
+        <a href="/" class="rounded font-display text-2xl font-semibold tracking-wider uppercase">Watch<span class="text-accent-soft">list</span></a>
         {% if current_user %}
-          <a href="/up-next" class="text-sm text-slate-600 hover:text-slate-900">Далі</a>
-          <a href="/list" class="text-sm text-slate-600 hover:text-slate-900">Мій список</a>
+          <a href="/up-next" class="nav-link {{ 'nav-link-active' if request.url.path == '/up-next' }}">Далі</a>
+          <a href="/list" class="nav-link {{ 'nav-link-active' if request.url.path == '/list' }}">Мій список</a>
         {% endif %}
       </div>
       <form method="get" action="/search" role="search" class="group relative order-last w-full md:order-none md:w-auto md:max-w-md md:flex-1">
         <label for="nav-search" class="sr-only">Назва серіалу або фільму</label>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-faint" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg>
         <input id="nav-search" name="q" type="search" autocomplete="off" maxlength="200"
                value="{{ query if request.url.path == '/search' else '' }}"
                placeholder="Пошук серіалів і фільмів"
@@ -29,31 +33,35 @@
                hx-get="/search" hx-trigger="input changed delay:300ms, search"
                hx-target="#nav-search-results" hx-sync="this:replace"
                hx-on:keydown="if (event.key === 'Escape') this.blur()"
-               class="block w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
-        <div id="nav-search-results" tabindex="-1" class="absolute inset-x-0 top-full z-20 mt-1 hidden overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg group-focus-within:[&:not(:empty)]:block"></div>
+               class="field rounded-full py-2 pl-10">
+        <div id="nav-search-results" tabindex="-1" class="absolute inset-x-0 top-full z-20 mt-2 hidden overflow-hidden rounded-xl border border-line bg-raised shadow-2xl shadow-black/70 group-focus-within:[&:not(:empty)]:block"></div>
       </form>
       {% if current_user %}
         <div class="flex items-center gap-4 text-sm">
-          <span class="text-slate-600">{{ current_user.username }}</span>
+          <span class="font-semibold text-fg">{{ current_user.username }}</span>
           <form method="post" action="/logout">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="text-slate-600 hover:text-slate-900">Вийти</button>
+            <button type="submit" class="nav-link">Вийти</button>
           </form>
         </div>
       {% else %}
         <div class="flex items-center gap-4 text-sm">
-          <a href="/login" class="text-slate-600 hover:text-slate-900">Вхід</a>
-          <a href="/register" class="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700">Реєстрація</a>
+          <a href="/login" class="nav-link">Вхід</a>
+          <a href="/register" class="btn btn-primary py-1.5">Реєстрація</a>
         </div>
       {% endif %}
     </nav>
   </header>
-  <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-    {% block content %}{% endblock %}
+  <main class="flex-1">
+    {% block main %}
+      <div class="page py-10">
+        {% block content %}{% endblock %}
+      </div>
+    {% endblock %}
   </main>
-  <footer class="border-t border-slate-200 bg-white">
-    <div class="mx-auto max-w-5xl px-4 py-4 text-xs text-slate-500">
-      Дані про фільми й серіали надає <a href="https://www.themoviedb.org/" class="underline hover:text-slate-700" rel="noopener" target="_blank">TMDB</a>.
+  <footer class="border-t border-line">
+    <div class="page py-5 text-xs leading-relaxed text-faint">
+      Дані про фільми й серіали надає <a href="https://www.themoviedb.org/" class="rounded underline hover:text-muted" rel="noopener" target="_blank">TMDB</a>.
       This product uses the TMDB API but is not endorsed or certified by TMDB.
     </div>
   </footer>

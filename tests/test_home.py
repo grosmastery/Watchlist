@@ -440,6 +440,39 @@ async def test_popular_anime_is_sorted_by_popularity(
     assert response.text.index("Топове") < response.text.index("Менш відоме")
 
 
+async def test_hero_shows_trending_title_with_backdrop(
+    client: AsyncClient, tmdb_mock: respx.MockRouter
+) -> None:
+    tmdb_mock.get("/trending/tv/week").mock(
+        return_value=page(
+            tv(1, "Головний", overview="Опис", backdrop_path="/wide.jpg"),
+            tv(2, "Без кадру", overview="Опис", popularity=99.0),
+            tv(3, "Ток-шоу", overview="Опис", backdrop_path="/t.jpg", genre_ids=[10767]),
+        )
+    )
+    tmdb_mock.get("/trending/movie/week").mock(return_value=page())
+
+    response = await client.get("/home/hero", headers=HTMX)
+
+    assert "Головний" in response.text
+    assert "/w1280/wide.jpg" in response.text
+    assert 'href="/tmdb/tv/1"' in response.text
+    assert "Без кадру" not in response.text
+    assert "Ток-шоу" not in response.text
+
+
+async def test_hero_is_empty_when_tmdb_is_down(
+    client: AsyncClient, tmdb_mock: respx.MockRouter
+) -> None:
+    tmdb_mock.get("/trending/tv/week").mock(return_value=httpx.Response(404))
+    tmdb_mock.get("/trending/movie/week").mock(return_value=httpx.Response(404))
+
+    response = await client.get("/home/hero", headers=HTMX)
+
+    assert response.status_code == 200
+    assert response.text == ""
+
+
 async def login(client: AsyncClient, session: AsyncSession) -> int:
     await register_user(client)
     user_id = await session.scalar(select(User.id).where(User.username == "viewer"))

@@ -1,26 +1,26 @@
 {% macro field(name, label, type="text", value="", error=None, autocomplete=None) %}
   <div>
-    <label for="{{ name }}" class="mb-1 block text-sm font-medium text-slate-700">{{ label }}</label>
+    <label for="{{ name }}" class="mb-1.5 block text-sm font-semibold text-muted">{{ label }}</label>
     <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value }}"
            {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
            {% if error %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
-           class="block w-full rounded-md border px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 {{ 'border-red-400 focus:ring-red-200' if error else 'border-slate-300 focus:border-slate-500 focus:ring-slate-200' }}">
+           class="field py-2.5 {{ 'field-invalid' if error }}">
     {% if error %}
-      <p id="{{ name }}-error" class="mt-1 text-sm text-red-600">{{ error }}</p>
+      <p id="{{ name }}-error" class="mt-1.5 text-sm text-red-300">{{ error }}</p>
     {% endif %}
   </div>
 {% endmacro %}
 
 {% macro form_error(errors) %}
   {% if errors.get("__all__") %}
-    <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div role="alert" class="alert alert-danger">
       {{ errors["__all__"] }}
     </div>
   {% endif %}
 {% endmacro %}
 
 {% macro submit(label) %}
-  <button type="submit" class="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400">
+  <button type="submit" class="btn btn-primary w-full py-2.5">
     {{ label }}
   </button>
 {% endmacro %}
