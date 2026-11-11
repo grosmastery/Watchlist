@@ -98,6 +98,83 @@
     @apply bg-accent text-on-accent hover:bg-accent hover:text-on-accent;
   }
 
+  .chip-check {
+    @apply cursor-pointer outline-offset-2 outline-accent-soft select-none has-checked:bg-accent has-checked:text-on-accent has-checked:hover:bg-accent has-checked:hover:text-on-accent has-focus-visible:outline-2;
+  }
+
+  .swipe-deck {
+    position: relative;
+    margin-inline: auto;
+    aspect-ratio: 2 / 3;
+    width: min(100%, 24rem, max(15rem, calc((100dvh - 27rem) * 2 / 3)));
+    touch-action: pan-y;
+    user-select: none;
+
+    @media (min-width: 48rem) {
+      width: min(100%, 24rem, max(15rem, calc((100dvh - 23rem) * 2 / 3)));
+    }
+  }
+
+  .swipe-card {
+    @apply absolute inset-0 overflow-hidden rounded-2xl bg-raised shadow-2xl ring-1 shadow-black/70 ring-white/10;
+    visibility: hidden;
+    transition:
+      transform 320ms ease,
+      opacity 320ms ease;
+    transform-origin: 50% 90%;
+  }
+
+  .swipe-card[data-depth="0"] {
+    visibility: visible;
+    cursor: grab;
+  }
+
+  .swipe-card[data-depth="1"] {
+    visibility: visible;
+    opacity: 0.75;
+    transform: translateY(12px) scale(0.95);
+  }
+
+  .swipe-card[data-depth="2"] {
+    visibility: visible;
+    opacity: 0.4;
+    transform: translateY(24px) scale(0.9);
+  }
+
+  .swipe-card.is-dragging {
+    cursor: grabbing;
+    transition: none;
+  }
+
+  .swipe-stamp {
+    @apply absolute top-6 rounded-lg border-4 px-3 py-1 font-display text-2xl font-semibold tracking-wider uppercase;
+    pointer-events: none;
+  }
+
+  .swipe-stamp-like {
+    @apply left-5 -rotate-12 border-accent-soft text-accent-soft;
+    opacity: var(--like, 0);
+  }
+
+  .swipe-stamp-skip {
+    @apply right-5 rotate-12 border-fg text-fg;
+    opacity: var(--skip, 0);
+  }
+
+  .swipe-button {
+    @apply flex h-16 w-16 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-xl shadow-black/50 transition hover:bg-raised hover:text-fg motion-safe:hover:scale-110;
+  }
+
+  .swipe-button-like {
+    @apply border-transparent bg-accent text-on-accent hover:bg-accent hover:text-on-accent hover:brightness-115;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .swipe-card {
+      transition: none;
+    }
+  }
+
   .panel {
     @apply rounded-xl border border-line bg-surface;
   }

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Свайпи{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='js/swipe.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="mx-auto max-w-xl">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h1 class="heading-page">Свайпи</h1>
+      <a href="/swipe/liked" class="btn btn-secondary">Вподобані · <span id="liked-count">{{ liked_count }}</span></a>
+    </div>
+    <form class="mt-4 flex flex-wrap gap-2" aria-label="Що показувати"
+          hx-get="/swipe/deck" hx-trigger="load, change" hx-target="#swipe-area" hx-sync="this:replace">
+      {% for category in categories %}
+        <label class="chip chip-check">
+          <input type="checkbox" name="types" value="{{ category.value }}" class="sr-only" {% if category in selected %}checked{% endif %}>
+          {{ category.label }}
+        </label>
+      {% endfor %}
+    </form>
+    <div id="swipe-area" class="mt-6">
+      <div class="swipe-deck animate-pulse rounded-2xl bg-surface" aria-hidden="true"></div>
+    </div>
+  </div>
+{% endblock %}

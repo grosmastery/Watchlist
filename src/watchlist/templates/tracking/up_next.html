@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Далі{% endblock %}
+{% block title %}Наступні серії{% endblock %}
 
 {% macro section(heading, items, hint=None) %}
   {% if items %}
@@ -17,7 +17,7 @@
 {% endmacro %}
 
 {% block content %}
-  <h1 class="heading-page mb-8">Далі</h1>
+  <h1 class="heading-page mb-8">Наступні серії</h1>
   {% if available or upcoming or waiting %}
     {{ section("Можна дивитись", available) }}
     {{ section("Скоро вийде", upcoming, "Наступні серії за датою виходу") }}

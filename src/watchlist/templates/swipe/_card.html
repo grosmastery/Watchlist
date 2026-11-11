@@ -1,0 +1,21 @@
+<article class="swipe-card" aria-label="{{ card.name }}"
+         data-media-type="{{ card.media_type }}" data-tmdb-id="{{ card.tmdb_id }}"
+         data-name="{{ card.name }}" data-poster-path="{{ card.poster_path }}" data-subtitle="{{ card.subtitle }}">
+  <img src="{{ card.poster_path | poster_url('w500') }}" alt="" draggable="false" class="absolute inset-0 h-full w-full object-cover">
+  <div class="absolute inset-0 bg-linear-to-t from-black/95 via-black/25 to-transparent"></div>
+  <span class="swipe-stamp swipe-stamp-like" aria-hidden="true">Подобається</span>
+  <span class="swipe-stamp swipe-stamp-skip" aria-hidden="true">Пропустити</span>
+  <div class="absolute inset-x-0 bottom-0 p-5">
+    <h2 class="line-clamp-2 font-display text-2xl leading-tight font-medium tracking-wide">{{ card.name }}</h2>
+    <p class="mt-1 text-sm font-semibold text-fg/80">{{ card.subtitle }}{% if card.rating %} · <span class="text-accent-soft">★ {{ "%.1f" | format(card.rating) }}</span>{% endif %}</p>
+    {% if card.genres %}
+      <ul class="mt-2 flex flex-wrap gap-1.5">
+        {% for genre in card.genres[:3] %}
+          <li class="rounded-full border border-white/25 px-2.5 py-0.5 text-xs font-semibold">{{ genre }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if card.overview %}<p class="mt-2 line-clamp-3 text-sm leading-relaxed text-fg/85">{{ card.overview }}</p>{% endif %}
+    <a href="{{ card.url }}" target="_blank" rel="noopener" class="link mt-2 inline-block rounded text-sm">Детальніше</a>
+  </div>
+</article>

@@ -163,25 +163,38 @@ class TMDBClient:
         media_type: MediaType,
         params: Mapping[str, str | int] | None = None,
         page: int = 1,
+        *,
+        fill_overviews: bool = False,
     ) -> list[BrowseItem]:
         query = {**(params or {}), "page": page}
         payload = await self._get(path, query)
         items = [normalize(item) for item in payload.get("results", [])]
-        if any(self._lacks_translation(item) for item in items):
+        if any(
+            self._lacks_translation(item) or (fill_overviews and not item.get("overview"))
+            for item in items
+        ):
             fallback = await self._get(path, {**query, "language": self.fallback_language})
-            names = {
-                item["id"]: normalize(item).get("name") for item in fallback.get("results", [])
-            }
+            originals = {item["id"]: normalize(item) for item in fallback.get("results", [])}
             for item in items:
-                if self._lacks_translation(item) and names.get(item["id"]):
-                    item["name"] = names[item["id"]]
+                original = originals.get(item["id"], {})
+                if self._lacks_translation(item) and original.get("name"):
+                    item["name"] = original["name"]
+                if fill_overviews and not item.get("overview"):
+                    item["overview"] = original.get("overview") or ""
         return [BrowseItem.model_validate({"media_type": media_type, **item}) for item in items]
 
     async def discover(
-        self, media_type: MediaType, params: Mapping[str, str | int], page: int = 1
+        self,
+        media_type: MediaType,
+        params: Mapping[str, str | int],
+        page: int = 1,
+        *,
+        fill_overviews: bool = False,
     ) -> list[BrowseItem]:
         query = {"include_adult": "false", "sort_by": "popularity.desc", **params}
-        return await self._browse(f"/discover/{media_type}", media_type, query, page)
+        return await self._browse(
+            f"/discover/{media_type}", media_type, query, page, fill_overviews=fill_overviews
+        )
 
     async def trending(self, media_type: MediaType, page: int = 1) -> list[BrowseItem]:
         return await self._browse(f"/trending/{media_type}/week", media_type, page=page)

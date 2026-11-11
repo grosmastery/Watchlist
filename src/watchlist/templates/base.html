@@ -11,6 +11,7 @@
   <script src="https://unpkg.com/htmx.org@2.0.11/dist/htmx.min.js"
           integrity="sha384-2OatzQy1H+Zd/IIrjr1TcuDGqLXeHhbooAyJY1KdQMKnr4LZ22k31GBLdYKHmVjg"
           crossorigin="anonymous" defer></script>
+  {% block scripts %}{% endblock %}
 </head>
 <body class="flex min-h-full flex-col bg-canvas text-fg antialiased"
       hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
@@ -19,8 +20,9 @@
       <div class="flex items-center gap-6">
         <a href="/" class="rounded font-display text-2xl font-semibold tracking-wider uppercase">Watch<span class="text-accent-soft">list</span></a>
         {% if current_user %}
-          <a href="/up-next" class="nav-link {{ 'nav-link-active' if request.url.path == '/up-next' }}">Далі</a>
+          <a href="/up-next" class="nav-link {{ 'nav-link-active' if request.url.path == '/up-next' }}">Наступні серії</a>
           <a href="/list" class="nav-link {{ 'nav-link-active' if request.url.path == '/list' }}">Мій список</a>
+          <a href="/swipe" class="nav-link {{ 'nav-link-active' if request.url.path.startswith('/swipe') }}">Свайпи</a>
         {% endif %}
       </div>
       <form method="get" action="/search" role="search" class="group relative order-last w-full md:order-none md:w-auto md:max-w-md md:flex-1">
