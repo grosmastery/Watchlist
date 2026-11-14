@@ -165,6 +165,10 @@
     @apply flex h-16 w-16 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-xl shadow-black/50 transition hover:bg-raised hover:text-fg motion-safe:hover:scale-110;
   }
 
+  .swipe-button-small {
+    @apply h-12 w-12 disabled:pointer-events-none disabled:opacity-35;
+  }
+
   .swipe-button-like {
     @apply border-transparent bg-accent text-on-accent hover:bg-accent hover:text-on-accent hover:brightness-115;
   }

@@ -283,6 +283,32 @@ async def test_liked_list_is_private(client: AsyncClient, db_session: AsyncSessi
     assert "Тайтл 1" not in (await client.get("/swipe/liked")).text
 
 
+async def test_undo_forgets_decision(
+    client: AsyncClient, db_session: AsyncSession, tmdb_mock: respx.MockRouter
+) -> None:
+    await login(client, db_session)
+    mock_genres(tmdb_mock)
+    headers = await csrf_headers(client)
+    await client.post("/swipe/decisions", data=decision(1), headers=headers)
+    await client.post("/swipe/decisions", data=decision(2), headers=headers)
+
+    response = await client.delete("/swipe/decisions/tv/1", headers=headers)
+
+    assert response.json() == {"liked_count": 1}
+    assert "Тайтл 1" not in (await client.get("/swipe/liked")).text
+    tmdb_mock.get("/discover/tv").mock(return_value=page(tv(1, "Повернутий")))
+    deck = await client.get("/swipe/deck", params={"types": "series"}, headers=HTMX)
+    assert "Повернутий" in deck.text
+
+
+async def test_undo_requires_csrf(client: AsyncClient, db_session: AsyncSession) -> None:
+    await login(client, db_session)
+
+    response = await client.delete("/swipe/decisions/tv/1")
+
+    assert response.status_code == 403
+
+
 async def test_discover_fills_missing_overview_from_fallback_language(
     tmdb_client: TMDBClient, tmdb_mock: respx.MockRouter
 ) -> None:

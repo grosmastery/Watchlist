@@ -18,6 +18,7 @@ from watchlist.swipe.service import (
     list_liked,
     record_swipe,
     remove_liked,
+    undo_swipe,
 )
 from watchlist.templating import templates
 
@@ -85,6 +86,18 @@ async def swipe_decision(
     user: RequiredUser, session: DbSession, decision: Annotated[SwipeDecision, Form()]
 ) -> JSONResponse:
     await record_swipe(session, user.id, decision)
+    await session.commit()
+    return JSONResponse({"liked_count": await liked_count(session, user.id)})
+
+
+@router.delete("/swipe/decisions/{media_type}/{tmdb_id}", dependencies=CSRF)
+async def undo_decision(
+    user: RequiredUser,
+    session: DbSession,
+    media_type: Literal["tv", "movie"],
+    tmdb_id: Annotated[int, Path(gt=0)],
+) -> JSONResponse:
+    await undo_swipe(session, user.id, media_type, tmdb_id)
     await session.commit()
     return JSONResponse({"liked_count": await liked_count(session, user.id)})
 

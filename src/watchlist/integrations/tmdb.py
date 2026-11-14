@@ -203,6 +203,9 @@ class TMDBClient:
     async def get_recommendations(self, media_type: MediaType, tmdb_id: int) -> list[BrowseItem]:
         return await self._browse(f"/{media_type}/{tmdb_id}/recommendations", media_type)
 
+    async def get_similar(self, media_type: MediaType, tmdb_id: int) -> list[BrowseItem]:
+        return await self._browse(f"/{media_type}/{tmdb_id}/similar", media_type)
+
     async def get_videos(self, media_type: MediaType, tmdb_id: int) -> list[Video]:
         languages = f"{self.language[:2]},{self.fallback_language[:2]},null"
         payload = await self._get(

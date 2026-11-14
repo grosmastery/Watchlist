@@ -14,11 +14,14 @@
     <button type="button" data-swipe="skip" aria-label="Пропустити" class="swipe-button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-7 w-7" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
+    <button type="button" data-swipe="undo" aria-label="Повернути попередню картку" title="Назад" disabled class="swipe-button swipe-button-small">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    </button>
     <button type="button" data-swipe="like" aria-label="Подобається" class="swipe-button swipe-button-like">
       <svg viewBox="0 0 24 24" fill="currentColor" class="h-7 w-7" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.4C.4 8.300 2.200 4.500 6 4.500c2.300 0 4.500 1.300 6 3.500 1.500-2.200 3.700-3.500 6-3.500 3.800 0 5.600 3.800 4 7.100C19.500 16.400 12 21 12 21Z"/></svg>
     </button>
   </div>
-  <p class="mt-4 hidden text-center text-sm text-faint md:block">Перетягніть картку або натисніть ← чи →</p>
+  <p class="mt-4 hidden text-center text-sm text-faint md:block">Перетягніть картку або натисніть ← чи →, Backspace повертає попередню</p>
   <p id="swipe-done" class="empty-state" hidden>Поки що нових карток у цих категоріях немає.</p>
   <p id="swipe-error" class="alert mt-4 text-center" role="status" hidden>Не вдалося зберегти вибір. Оновіть сторінку.</p>
 {% endif %}

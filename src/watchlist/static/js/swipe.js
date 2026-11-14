@@ -4,9 +4,11 @@ const REFILL_AT = 4;
 const LEAVE_MS = 320;
 
 const seen = new Set();
+const undoStack = [];
 let drag = null;
 let refilling = false;
 let exhausted = false;
+let pending = Promise.resolve();
 
 const deckElement = () => document.getElementById("swipe-deck");
 const cardKey = (card) => `${card.dataset.mediaType}:${card.dataset.tmdbId}`;
@@ -32,6 +34,27 @@ function showDoneWhenEmpty() {
   document.getElementById("swipe-done").hidden = false;
 }
 
+function showDeck() {
+  const deck = deckElement();
+  if (!deck) {
+    return;
+  }
+  deck.hidden = false;
+  document.getElementById("swipe-controls").hidden = false;
+  document.getElementById("swipe-done").hidden = true;
+}
+
+function updateUndo() {
+  const button = document.querySelector("[data-swipe=undo]");
+  if (button) {
+    button.disabled = undoStack.length === 0;
+  }
+}
+
+function enqueue(task) {
+  pending = pending.then(task);
+}
+
 function showError() {
   const error = document.getElementById("swipe-error");
   if (error) {
@@ -43,20 +66,11 @@ function csrfToken() {
   return JSON.parse(document.body.getAttribute("hx-headers"))["X-CSRF-Token"];
 }
 
-async function sendDecision(card, liked) {
-  const { mediaType, tmdbId, name, posterPath, subtitle } = card.dataset;
+async function send(url, options) {
   try {
-    const response = await fetch("/swipe/decisions", {
-      method: "POST",
+    const response = await fetch(url, {
+      ...options,
       headers: { "X-CSRF-Token": csrfToken() },
-      body: new URLSearchParams({
-        media_type: mediaType,
-        tmdb_id: tmdbId,
-        liked: String(liked),
-        name,
-        poster_path: posterPath,
-        subtitle,
-      }),
     });
     if (!response.ok) {
       throw new Error(String(response.status));
@@ -66,6 +80,26 @@ async function sendDecision(card, liked) {
   } catch {
     showError();
   }
+}
+
+function sendDecision(card, liked) {
+  const { mediaType, tmdbId, name, posterPath, subtitle } = card.dataset;
+  return send("/swipe/decisions", {
+    method: "POST",
+    body: new URLSearchParams({
+      media_type: mediaType,
+      tmdb_id: tmdbId,
+      liked: String(liked),
+      name,
+      poster_path: posterPath,
+      subtitle,
+    }),
+  });
+}
+
+function sendUndo(card) {
+  const { mediaType, tmdbId } = card.dataset;
+  return send(`/swipe/decisions/${mediaType}/${tmdbId}`, { method: "DELETE" });
 }
 
 async function refill() {
@@ -99,13 +133,37 @@ function decide(card, liked) {
   card.classList.add("is-leaving");
   card.style.setProperty(liked ? "--like" : "--skip", "1");
   card.style.transform = `translate(${direction * 140}vw, 40px) rotate(${direction * 28}deg)`;
-  setTimeout(() => {
+  const timer = setTimeout(() => {
     card.remove();
     showDoneWhenEmpty();
   }, LEAVE_MS);
+  undoStack.push({ card, timer });
+  updateUndo();
   layout();
-  sendDecision(card, liked);
+  enqueue(() => sendDecision(card, liked));
   refill();
+}
+
+function undo() {
+  const entry = undoStack.pop();
+  const deck = deckElement();
+  updateUndo();
+  if (!entry || !deck) {
+    return;
+  }
+  const { card, timer } = entry;
+  clearTimeout(timer);
+  showDeck();
+  card.classList.remove("is-leaving");
+  card.classList.add("is-dragging");
+  deck.append(card);
+  layout();
+  card.getBoundingClientRect();
+  card.classList.remove("is-dragging");
+  card.style.transform = "";
+  card.style.removeProperty("--like");
+  card.style.removeProperty("--skip");
+  enqueue(() => sendUndo(card));
 }
 
 function endDrag(accept) {
@@ -150,26 +208,38 @@ document.addEventListener("pointercancel", () => endDrag(false));
 
 document.addEventListener("click", (event) => {
   const button = event.target.closest("[data-swipe]");
+  if (!button) {
+    return;
+  }
+  if (button.dataset.swipe === "undo") {
+    undo();
+    return;
+  }
   const card = topCard();
-  if (button && card) {
+  if (card) {
     decide(card, button.dataset.swipe === "like");
   }
 });
 
 document.addEventListener("keydown", (event) => {
-  const card = topCard();
-  if (!card || event.target.matches("input[type=search], input[type=text], textarea, select")) {
+  if (!deckElement() || event.target.matches("input[type=search], input[type=text], textarea, select")) {
     return;
   }
-  if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+  const card = topCard();
+  if (card && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
     event.preventDefault();
     decide(card, event.key === "ArrowRight");
+  } else if (event.key === "Backspace") {
+    event.preventDefault();
+    undo();
   }
 });
 
 document.addEventListener("htmx:afterSettle", (event) => {
   if (event.detail.target.id === "swipe-area") {
     exhausted = false;
+    undoStack.length = 0;
+    updateUndo();
     layout();
   }
 });

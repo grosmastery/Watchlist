@@ -12,6 +12,7 @@ from watchlist.catalog.service import (
     import_title,
     search_titles,
 )
+from watchlist.catalog.similar import find_similar
 from watchlist.catalog.trailers import find_trailer
 from watchlist.csrf import csrf_protect
 from watchlist.home.routes import Cache
@@ -28,6 +29,7 @@ router = APIRouter(tags=["catalog"])
 
 QUERY_MAX_LENGTH = 200
 TRAILER_TTL = 24 * 3600
+SIMILAR_TTL = 24 * 3600
 CSRF = [Depends(csrf_protect)]
 
 
@@ -116,6 +118,34 @@ async def title_trailer(
         return HTMLResponse("")
     context = {"title": title, "trailer_key": key}
     return templates.TemplateResponse(request, "catalog/_trailer.html", context)
+
+
+@router.get("/titles/{title_id}/similar", response_class=HTMLResponse)
+async def similar_titles(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    cache: Cache,
+    client: TMDB,
+    title_id: Annotated[int, Path(gt=0)],
+) -> HTMLResponse:
+    title = await session.get(Title, title_id)
+    if title is None:
+        return HTMLResponse("")
+    media_type = title.type.tmdb_type
+    try:
+        cards = await cache.get_or_load(
+            ("similar", media_type, title.tmdb_id),
+            SIMILAR_TTL,
+            lambda: find_similar(client, media_type, title.tmdb_id),
+        )
+    except TMDBError as failure:
+        logger.warning("Could not load similar titles for title %s: %s", title_id, failure)
+        return HTMLResponse("")
+    if not cards:
+        return HTMLResponse("")
+    context = {"cards": cards, "error": False}
+    return templates.TemplateResponse(request, "catalog/_similar.html", context)
 
 
 @router.get("/titles/{title_id}", response_class=HTMLResponse)

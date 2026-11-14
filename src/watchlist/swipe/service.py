@@ -64,6 +64,16 @@ async def list_liked(session: AsyncSession, user_id: int) -> list[Swipe]:
     return list(rows)
 
 
+async def undo_swipe(
+    session: AsyncSession, user_id: int, media_type: MediaType, tmdb_id: int
+) -> None:
+    await session.execute(
+        delete(Swipe).where(
+            Swipe.user_id == user_id, Swipe.media_type == media_type, Swipe.tmdb_id == tmdb_id
+        )
+    )
+
+
 async def remove_liked(
     session: AsyncSession, user_id: int, media_type: MediaType, tmdb_id: int
 ) -> None:
