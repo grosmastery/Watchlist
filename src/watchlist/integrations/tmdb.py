@@ -15,6 +15,7 @@ from watchlist.integrations.tmdb_schemas import (
     SeasonSummary,
     SeriesDetails,
     SeriesWithEpisodes,
+    Video,
 )
 
 logger = logging.getLogger(__name__)
@@ -201,6 +202,13 @@ class TMDBClient:
 
     async def get_recommendations(self, media_type: MediaType, tmdb_id: int) -> list[BrowseItem]:
         return await self._browse(f"/{media_type}/{tmdb_id}/recommendations", media_type)
+
+    async def get_videos(self, media_type: MediaType, tmdb_id: int) -> list[Video]:
+        languages = f"{self.language[:2]},{self.fallback_language[:2]},null"
+        payload = await self._get(
+            f"/{media_type}/{tmdb_id}/videos", {"include_video_language": languages}
+        )
+        return [Video.model_validate(item) for item in payload.get("results", [])]
 
     async def get_genres(self, media_type: MediaType) -> dict[int, str]:
         payload = await self._get(f"/genre/{media_type}/list")

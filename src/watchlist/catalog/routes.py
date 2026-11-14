@@ -12,7 +12,9 @@ from watchlist.catalog.service import (
     import_title,
     search_titles,
 )
+from watchlist.catalog.trailers import find_trailer
 from watchlist.csrf import csrf_protect
+from watchlist.home.routes import Cache
 from watchlist.integrations.dependencies import TMDB
 from watchlist.integrations.tmdb import TMDBError, TMDBNotConfiguredError
 from watchlist.integrations.tmdb_schemas import SearchResult
@@ -25,6 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["catalog"])
 
 QUERY_MAX_LENGTH = 200
+TRAILER_TTL = 24 * 3600
 CSRF = [Depends(csrf_protect)]
 
 
@@ -85,6 +88,34 @@ async def refresh_title(
     await import_title(session, client, title.type, title.tmdb_id)
     await session.commit()
     return RedirectResponse(f"/titles/{title_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/titles/{title_id}/trailer", response_class=HTMLResponse)
+async def title_trailer(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    cache: Cache,
+    client: TMDB,
+    title_id: Annotated[int, Path(gt=0)],
+) -> HTMLResponse:
+    title = await session.get(Title, title_id)
+    if title is None:
+        return HTMLResponse("")
+    media_type = title.type.tmdb_type
+    try:
+        key = await cache.get_or_load(
+            ("trailer", media_type, title.tmdb_id),
+            TRAILER_TTL,
+            lambda: find_trailer(client, media_type, title.tmdb_id),
+        )
+    except TMDBError as failure:
+        logger.warning("Could not load the trailer for title %s: %s", title_id, failure)
+        return HTMLResponse("")
+    if key is None:
+        return HTMLResponse("")
+    context = {"title": title, "trailer_key": key}
+    return templates.TemplateResponse(request, "catalog/_trailer.html", context)
 
 
 @router.get("/titles/{title_id}", response_class=HTMLResponse)

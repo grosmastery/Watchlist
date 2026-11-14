@@ -39,10 +39,11 @@
               {% endfor %}
             </ul>
           {% endif %}
-          <div class="mt-6">
+          <div class="mt-6 flex flex-wrap items-center gap-2">
             {% with title_id=title.id, view="title" %}
               {% include "tracking/_entry_controls.html" %}
             {% endwith %}
+            <div hx-get="/titles/{{ title.id }}/trailer" hx-trigger="load" hx-swap="outerHTML"></div>
           </div>
           {% if title.is_series %}
             {% include "tracking/_progress.html" %}

@@ -1,0 +1,21 @@
+<button type="button" class="btn btn-secondary py-1.5"
+        hx-on:click="const dialog = document.getElementById('trailer-dialog'); dialog.querySelector('iframe').src = dialog.dataset.src; dialog.showModal()">
+  <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true"><path d="M6.3 3.6A1 1 0 0 0 4.8 4.5v11a1 1 0 0 0 1.5.9l9-5.5a1 1 0 0 0 0-1.8l-9-5.5Z"/></svg>
+  Трейлер
+</button>
+<dialog id="trailer-dialog" aria-label="Трейлер: {{ title.name }}"
+        data-src="https://www.youtube-nocookie.com/embed/{{ trailer_key }}?autoplay=1&rel=0"
+        hx-on:click="if (event.target === this) this.close()"
+        hx-on:close="this.querySelector('iframe').removeAttribute('src')"
+        class="m-auto w-[min(92vw,1100px)] overflow-visible bg-transparent p-0 text-fg backdrop:bg-black/85 backdrop:backdrop-blur-sm">
+  <form method="dialog" class="mb-3 flex justify-end">
+    <button type="submit" aria-label="Закрити трейлер" class="flex h-10 w-10 items-center justify-center rounded-full bg-raised text-fg transition hover:bg-accent hover:text-on-accent">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </form>
+  <div class="aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl shadow-black">
+    <iframe title="Трейлер: {{ title.name }}" class="h-full w-full"
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen
+            referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+</dialog>

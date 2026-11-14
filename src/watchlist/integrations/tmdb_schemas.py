@@ -46,6 +46,14 @@ class BrowseItem(SearchResult):
     adult: bool = False
 
 
+class Video(TMDBModel):
+    key: str
+    site: str = ""
+    type: str = ""
+    official: bool = False
+    iso_639_1: str | None = None
+
+
 class SearchPage(TMDBModel):
     page: int = 1
     total_pages: int = 0
