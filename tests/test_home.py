@@ -9,7 +9,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.conftest import create_title, register_user
+from tests.conftest import create_title, fetch_csrf_token, register_user
 from watchlist.auth.models import User
 from watchlist.catalog.models import Title
 from watchlist.home.cache import TTLCache
@@ -581,3 +581,79 @@ async def test_recommendations_show_message_when_every_seed_fails(
 
     assert response.status_code == 200
     assert "Не вдалося завантажити" in response.text
+
+
+def swiped(tmdb_id: int, name: str, updated: datetime = UPDATED) -> Signal:
+    return Signal(("movie", tmdb_id), name, (), 1.0, updated, from_swipe=True)
+
+
+def test_swipe_likes_take_limited_seed_slots() -> None:
+    listed = [signal(index, 1.0) for index in range(1, 11)]
+    likes = [swiped(100 + index, "Лайк", UPDATED + timedelta(days=index)) for index in range(5)]
+
+    seeds = select_seeds([*listed, *likes])
+
+    assert len(seeds) == 8
+    assert sum(seed.from_swipe for seed in seeds) == 3
+    assert {seed.key for seed in seeds if seed.from_swipe} == {
+        ("movie", 104),
+        ("movie", 103),
+        ("movie", 102),
+    }
+
+
+async def swipe(client: AsyncClient, tmdb_id: int, name: str, *, liked: bool) -> None:
+    await client.post(
+        "/swipe/decisions",
+        data={
+            "media_type": "movie",
+            "tmdb_id": tmdb_id,
+            "liked": str(liked).lower(),
+            "name": name,
+            "poster_path": f"/{tmdb_id}.jpg",
+            "subtitle": "Фільм · 2020",
+        },
+        headers={"X-CSRF-Token": await fetch_csrf_token(client, "/")},
+    )
+
+
+async def test_recommendations_use_swipe_likes_and_hide_skipped(
+    client: AsyncClient, db_session: AsyncSession, tmdb_mock: respx.MockRouter
+) -> None:
+    await login(client, db_session)
+    await swipe(client, 50, "Вподобаний", liked=True)
+    await swipe(client, 61, "Пропущений", liked=False)
+    mock_genres(tmdb_mock)
+    tmdb_mock.get("/movie/50/recommendations").respond(
+        json={"results": [film(60, "Рекомендований"), film(61, "Пропущений")]}
+    )
+    tmdb_mock.get("/discover/tv").mock(return_value=page())
+    tmdb_mock.get("/discover/movie").mock(return_value=page())
+
+    response = await client.get("/home/recommendations", headers=HTMX)
+
+    assert "Рекомендований" in response.text
+    assert "Бо вам сподобалось «Вподобаний»" in response.text
+    assert 'href="/tmdb/movie/61"' not in response.text
+    assert 'href="/tmdb/movie/50"' not in response.text
+
+
+async def test_skipping_hides_cached_recommendation(
+    client: AsyncClient, db_session: AsyncSession, tmdb_mock: respx.MockRouter
+) -> None:
+    await login(client, db_session)
+    await swipe(client, 50, "Вподобаний", liked=True)
+    mock_genres(tmdb_mock)
+    route = tmdb_mock.get("/movie/50/recommendations").respond(
+        json={"results": [film(60, "Рекомендований"), film(61, "Згодом пропущений")]}
+    )
+    tmdb_mock.get("/discover/tv").mock(return_value=page())
+    tmdb_mock.get("/discover/movie").mock(return_value=page())
+    await client.get("/home/recommendations", headers=HTMX)
+
+    await swipe(client, 61, "Згодом пропущений", liked=False)
+    response = await client.get("/home/recommendations", headers=HTMX)
+
+    assert "Згодом пропущений" not in response.text
+    assert "Рекомендований" in response.text
+    assert route.call_count == 1

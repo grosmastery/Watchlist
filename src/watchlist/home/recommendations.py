@@ -10,9 +10,12 @@ from watchlist.catalog.models import Title
 from watchlist.home.feeds import Card, interleave, is_listable, to_card
 from watchlist.integrations.tmdb import TMDBClient, TMDBError, TMDBUnavailableError
 from watchlist.integrations.tmdb_schemas import BrowseItem, MediaType
+from watchlist.swipe.models import Swipe
 from watchlist.tracking.models import ListStatus, UserTitle
 
 SEED_LIMIT = 8
+SWIPE_SEED_LIMIT = 3
+SWIPE_LIKE_WEIGHT = 1.0
 RESULT_LIMIT = 20
 MIN_RESULTS = 8
 PER_SOURCE_LIMIT = 3
@@ -34,6 +37,7 @@ class Signal:
     genres: tuple[str, ...]
     weight: float
     updated_at: datetime
+    from_swipe: bool = False
 
 
 @dataclass(slots=True)
@@ -54,13 +58,17 @@ def signal_weight(status: ListStatus, rating: int | None) -> float:
     return 0.5 if status is ListStatus.PLANNED else 1.0
 
 
+def swipe_key(media_type: str, tmdb_id: int) -> TitleKey:
+    return ("tv" if media_type == "tv" else "movie", tmdb_id)
+
+
 async def load_signals(session: AsyncSession, user_id: int) -> list[Signal]:
     rows = await session.execute(
         select(UserTitle.status, UserTitle.rating, UserTitle.updated_at, Title)
         .join(Title, Title.id == UserTitle.title_id)
         .where(UserTitle.user_id == user_id)
     )
-    return [
+    signals = [
         Signal(
             key=(title.type.tmdb_type, title.tmdb_id),
             name=title.name,
@@ -70,6 +78,22 @@ async def load_signals(session: AsyncSession, user_id: int) -> list[Signal]:
         )
         for status, rating, updated_at, title in rows
     ]
+    known = {signal.key for signal in signals}
+    likes = await session.scalars(select(Swipe).where(Swipe.user_id == user_id, Swipe.liked))
+    for swipe in likes:
+        key = swipe_key(swipe.media_type, swipe.tmdb_id)
+        if key not in known:
+            signals.append(
+                Signal(key, swipe.name, (), SWIPE_LIKE_WEIGHT, swipe.swiped_at, from_swipe=True)
+            )
+    return signals
+
+
+async def skipped_keys(session: AsyncSession, user_id: int) -> set[TitleKey]:
+    rows = await session.execute(
+        select(Swipe.media_type, Swipe.tmdb_id).where(Swipe.user_id == user_id, ~Swipe.liked)
+    )
+    return {swipe_key(media_type, tmdb_id) for media_type, tmdb_id in rows}
 
 
 def fingerprint(signals: list[Signal]) -> tuple[tuple[TitleKey, float], ...]:
@@ -79,7 +103,10 @@ def fingerprint(signals: list[Signal]) -> tuple[tuple[TitleKey, float], ...]:
 def select_seeds(signals: list[Signal]) -> list[Signal]:
     positive = [signal for signal in signals if signal.weight > 0]
     positive.sort(key=lambda signal: (signal.weight, signal.updated_at), reverse=True)
-    return positive[:SEED_LIMIT]
+    swiped = [signal for signal in positive if signal.from_swipe][:SWIPE_SEED_LIMIT]
+    listed = [signal for signal in positive if not signal.from_swipe][: SEED_LIMIT - len(swiped)]
+    chosen = {signal.key for signal in [*listed, *swiped]}
+    return [signal for signal in positive if signal.key in chosen]
 
 
 def genre_profile(signals: list[Signal]) -> dict[str, float]:
@@ -103,7 +130,7 @@ def item_genres(item: BrowseItem, genres: GenreNames) -> list[str]:
 
 
 def reason(source: Signal) -> str:
-    if source.weight >= LIKED_WEIGHT:
+    if source.from_swipe or source.weight >= LIKED_WEIGHT:
         return f"Бо вам сподобалось «{source.name}»"
     return f"Схоже на «{source.name}»"
 

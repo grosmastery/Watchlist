@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Path, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from watchlist.auth.dependencies import CurrentUser, DbSession, RequiredUser
+from watchlist.catalog.cast import find_cast
 from watchlist.catalog.models import Title, TitleType
 from watchlist.catalog.service import (
     get_or_import_title,
@@ -30,6 +31,7 @@ router = APIRouter(tags=["catalog"])
 QUERY_MAX_LENGTH = 200
 TRAILER_TTL = 24 * 3600
 SIMILAR_TTL = 24 * 3600
+CAST_TTL = 24 * 3600
 CSRF = [Depends(csrf_protect)]
 
 
@@ -146,6 +148,33 @@ async def similar_titles(
         return HTMLResponse("")
     context = {"cards": cards, "error": False}
     return templates.TemplateResponse(request, "catalog/_similar.html", context)
+
+
+@router.get("/titles/{title_id}/cast", response_class=HTMLResponse)
+async def title_cast(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    cache: Cache,
+    client: TMDB,
+    title_id: Annotated[int, Path(gt=0)],
+) -> HTMLResponse:
+    title = await session.get(Title, title_id)
+    if title is None:
+        return HTMLResponse("")
+    media_type = title.type.tmdb_type
+    try:
+        actors = await cache.get_or_load(
+            ("cast", media_type, title.tmdb_id),
+            CAST_TTL,
+            lambda: find_cast(client, media_type, title.tmdb_id),
+        )
+    except TMDBError as failure:
+        logger.warning("Could not load the cast for title %s: %s", title_id, failure)
+        return HTMLResponse("")
+    if not actors:
+        return HTMLResponse("")
+    return templates.TemplateResponse(request, "catalog/_cast.html", {"actors": actors})
 
 
 @router.get("/titles/{title_id}", response_class=HTMLResponse)

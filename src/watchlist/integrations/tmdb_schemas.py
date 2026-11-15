@@ -116,3 +116,30 @@ class SeriesDetails(TitleDetails):
 class SeriesWithEpisodes(TMDBModel):
     details: SeriesDetails
     seasons: list[SeasonDetails]
+
+
+class CastRole(TMDBModel):
+    character: str = ""
+    episode_count: int = 0
+
+
+class CastMember(TMDBModel):
+    id: int
+    name: str
+    character: str = ""
+    profile_path: str | None = None
+    order: int = 0
+    roles: list[CastRole] = Field(default_factory=list)
+    total_episode_count: int = 0
+
+    @field_validator("profile_path", mode="before")
+    @classmethod
+    def normalize_blank(cls, value: object) -> object:
+        return blank_to_none(value)
+
+    @property
+    def role(self) -> str:
+        if self.character:
+            return self.character
+        roles = sorted(self.roles, key=lambda role: role.episode_count, reverse=True)
+        return next((role.character for role in roles if role.character), "")

@@ -59,6 +59,8 @@
         </div>
       </div>
 
+      <div hx-get="/titles/{{ title.id }}/cast" hx-trigger="load" hx-swap="outerHTML"></div>
+
       {% if title.is_series %}
         <section class="mt-14">
           <h2 class="heading-section mb-4">Сезони</h2>

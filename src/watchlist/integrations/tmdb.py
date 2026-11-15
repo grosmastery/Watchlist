@@ -8,6 +8,7 @@ import httpx
 
 from watchlist.integrations.tmdb_schemas import (
     BrowseItem,
+    CastMember,
     MediaType,
     MovieDetails,
     SearchPage,
@@ -212,6 +213,12 @@ class TMDBClient:
             f"/{media_type}/{tmdb_id}/videos", {"include_video_language": languages}
         )
         return [Video.model_validate(item) for item in payload.get("results", [])]
+
+    async def get_cast(self, media_type: MediaType, tmdb_id: int) -> list[CastMember]:
+        path = "aggregate_credits" if media_type == "tv" else "credits"
+        payload = await self._get(f"/{media_type}/{tmdb_id}/{path}")
+        cast = [CastMember.model_validate(item) for item in payload.get("cast", [])]
+        return sorted(cast, key=lambda member: member.order)
 
     async def get_genres(self, media_type: MediaType) -> dict[int, str]:
         payload = await self._get(f"/genre/{media_type}/list")

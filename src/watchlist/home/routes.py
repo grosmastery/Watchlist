@@ -21,6 +21,7 @@ from watchlist.home.recommendations import (
     load_signals,
     recommend,
     select_seeds,
+    skipped_keys,
 )
 from watchlist.integrations.dependencies import TMDB
 from watchlist.integrations.tmdb import TMDBClient, TMDBError
@@ -136,5 +137,7 @@ async def recommendations_section(
         except TMDBError as failure:
             logger.warning("Could not load recommendations: %s", failure)
             error = True
+        skipped = await skipped_keys(session, user.id)
+        cards = [card for card in cards if card.key not in skipped]
     context = {"cards": cards, "has_seeds": has_seeds, "error": error}
     return templates.TemplateResponse(request, "home/_recommendations.html", context)
