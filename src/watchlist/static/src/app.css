@@ -107,7 +107,7 @@
     margin-inline: auto;
     aspect-ratio: 2 / 3;
     width: min(100%, 24rem, max(15rem, calc((100dvh - 27rem) * 2 / 3)));
-    touch-action: pan-y;
+    touch-action: none;
     user-select: none;
 
     @media (min-width: 48rem) {
@@ -147,7 +147,7 @@
   }
 
   .swipe-stamp {
-    @apply absolute top-6 rounded-lg border-4 px-3 py-1 font-display text-2xl font-semibold tracking-wider uppercase;
+    @apply absolute top-6 rounded-lg border-4 px-3 py-1 font-display text-2xl font-semibold tracking-wider whitespace-nowrap uppercase;
     pointer-events: none;
   }
 
@@ -159,6 +159,11 @@
   .swipe-stamp-skip {
     @apply right-5 rotate-12 border-fg text-fg;
     opacity: var(--skip, 0);
+  }
+
+  .swipe-stamp-list {
+    @apply left-1/2 -translate-x-1/2 border-accent bg-accent text-on-accent;
+    opacity: var(--list, 0);
   }
 
   .swipe-button {
@@ -177,6 +182,30 @@
     .swipe-card {
       transition: none;
     }
+  }
+
+  .star-rating {
+    @apply flex items-center;
+  }
+
+  .star {
+    @apply rounded p-0.5 text-white/20 transition motion-safe:hover:scale-125;
+
+    & svg {
+      @apply h-6 w-6;
+    }
+  }
+
+  .star-on {
+    @apply text-accent-soft;
+  }
+
+  .star-rating:has(.star:hover) .star {
+    @apply text-accent-soft;
+  }
+
+  .star-rating:has(.star:hover) .star:hover ~ .star {
+    @apply text-white/20;
   }
 
   .panel {

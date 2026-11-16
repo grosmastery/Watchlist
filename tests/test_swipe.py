@@ -6,11 +6,12 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from tests import tmdb_fakes
 from tests.conftest import create_title, fetch_csrf_token, register_user
 from watchlist.auth.models import User
 from watchlist.integrations.tmdb import TMDBClient
 from watchlist.tracking.models import ListStatus
-from watchlist.tracking.service import add_to_list
+from watchlist.tracking.service import add_to_list, list_entries
 
 HTMX = {"HX-Request": "true"}
 
@@ -325,3 +326,93 @@ async def test_discover_fills_missing_overview_from_fallback_language(
     assert filled[0].name == "Назва"
     assert filled[0].overview == "English overview"
     assert untouched[0].overview == ""
+
+
+async def test_swipe_up_adds_title_to_list(
+    client: AsyncClient, db_session: AsyncSession, tmdb_mock: respx.MockRouter
+) -> None:
+    user_id = await login(client, db_session)
+    tmdb_mock.get("/movie/27205").respond(json=tmdb_fakes.movie())
+
+    response = await client.post(
+        "/swipe/list",
+        data={"media_type": "movie", "tmdb_id": "27205"},
+        headers=await csrf_headers(client),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"liked_count": 0}
+    entries = await list_entries(db_session, user_id)
+    assert [(entry.title.tmdb_id, entry.status) for entry in entries] == [
+        (27205, ListStatus.PLANNED)
+    ]
+
+
+async def test_swipe_up_keeps_existing_entry(client: AsyncClient, db_session: AsyncSession) -> None:
+    user_id = await login(client, db_session)
+    title_id = await create_title(db_session, tmdb_id=27205, title_type="movie")
+    await add_to_list(db_session, user_id, title_id, ListStatus.COMPLETED)
+
+    await client.post(
+        "/swipe/list",
+        data={"media_type": "movie", "tmdb_id": "27205"},
+        headers=await csrf_headers(client),
+    )
+
+    entries = await list_entries(db_session, user_id)
+    assert [entry.status for entry in entries] == [ListStatus.COMPLETED]
+
+
+async def test_swipe_up_reports_tmdb_failure(
+    client: AsyncClient, db_session: AsyncSession, tmdb_mock: respx.MockRouter
+) -> None:
+    user_id = await login(client, db_session)
+    tmdb_mock.get("/movie/1").mock(side_effect=httpx.ConnectError("down"))
+
+    response = await client.post(
+        "/swipe/list",
+        data={"media_type": "movie", "tmdb_id": "1"},
+        headers=await csrf_headers(client),
+    )
+
+    assert response.status_code == 502
+    assert await list_entries(db_session, user_id) == []
+
+
+async def test_undo_swipe_up_removes_from_list(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    user_id = await login(client, db_session)
+    title_id = await create_title(db_session, tmdb_id=27205, title_type="movie")
+    await add_to_list(db_session, user_id, title_id, ListStatus.PLANNED)
+    headers = await csrf_headers(client)
+
+    removed = await client.delete("/swipe/list/movie/27205", headers=headers)
+    unknown = await client.delete("/swipe/list/tv/424242", headers=headers)
+
+    assert removed.status_code == 200
+    assert unknown.status_code == 200
+    assert await list_entries(db_session, user_id) == []
+
+
+async def test_swipe_up_requires_csrf(client: AsyncClient, db_session: AsyncSession) -> None:
+    await login(client, db_session)
+
+    created = await client.post("/swipe/list", data={"media_type": "movie", "tmdb_id": "1"})
+    undone = await client.delete("/swipe/list/movie/1")
+
+    assert created.status_code == 403
+    assert undone.status_code == 403
+
+
+async def test_deck_has_list_button_and_stamp(
+    client: AsyncClient, db_session: AsyncSession, tmdb_mock: respx.MockRouter
+) -> None:
+    await login(client, db_session)
+    mock_genres(tmdb_mock)
+    tmdb_mock.get("/discover/tv").mock(return_value=page(tv(2, "Серіал")))
+
+    response = await client.get("/swipe/deck", params={"types": "series"}, headers=HTMX)
+
+    assert 'data-swipe="list"' in response.text
+    assert "swipe-stamp-list" in response.text

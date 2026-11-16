@@ -82,6 +82,17 @@ async def update_entry(
     return entry
 
 
+async def rate_title(
+    session: AsyncSession, user_id: int, title_id: int, rating: int | None
+) -> UserTitle | None:
+    validate_rating(rating)
+    if await get_entry(session, user_id, title_id) is None:
+        if rating is None:
+            return None
+        await add_to_list(session, user_id, title_id, ListStatus.COMPLETED)
+    return await update_entry(session, user_id, title_id, rating=rating)
+
+
 async def remove_from_list(session: AsyncSession, user_id: int, title_id: int) -> bool:
     result = await session.execute(
         delete(UserTitle)

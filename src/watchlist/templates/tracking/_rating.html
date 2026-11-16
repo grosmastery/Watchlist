@@ -1,0 +1,27 @@
+{% set rating = entry.rating if entry else none %}
+<div id="rating-{{ title_id }}" {% if rating_oob %}hx-swap-oob="true"{% endif %} class="mt-5">
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span class="text-sm font-semibold text-muted">Твоя оцінка</span>
+    <div class="star-rating" role="group" aria-label="Твоя оцінка">
+      {% for value in rating_values %}
+        {% set current = value == rating %}
+        <button type="button" class="star {% if rating and value <= rating %}star-on{% endif %}"
+                hx-post="/list/{{ title_id }}/rating" hx-vals='{"rating": "{{ "" if current else value }}"}'
+                hx-target="#rating-{{ title_id }}" hx-swap="outerHTML"
+                aria-label="{{ value }} з 10" aria-pressed="{{ 'true' if current else 'false' }}"
+                title="{{ 'Прибрати оцінку' if current else value ~ ' з 10' }}">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L10 14.9l-5.2 2.8 1-5.9L1.5 7.7l5.9-.8L10 1.5Z"/></svg>
+        </button>
+      {% endfor %}
+    </div>
+    <span class="font-display text-xl font-medium tabular-nums {{ 'text-accent-soft' if rating else 'text-faint' }}">{{ rating ~ "/10" if rating else "—" }}</span>
+  </div>
+  {% if not entry %}
+    <p class="mt-1 text-xs text-faint">Оцінка додасть тайтл у список як «Переглянуто»</p>
+  {% endif %}
+</div>
+{% if controls_oob %}
+  {% with oob=True, view="title" %}
+    {% include "tracking/_entry_controls.html" %}
+  {% endwith %}
+{% endif %}

@@ -97,9 +97,25 @@ function sendDecision(card, liked) {
   });
 }
 
-function sendUndo(card) {
+function sendToList(card) {
   const { mediaType, tmdbId } = card.dataset;
-  return send(`/swipe/decisions/${mediaType}/${tmdbId}`, { method: "DELETE" });
+  return send("/swipe/list", {
+    method: "POST",
+    body: new URLSearchParams({ media_type: mediaType, tmdb_id: tmdbId }),
+  });
+}
+
+function sendUndo(card, action) {
+  const { mediaType, tmdbId } = card.dataset;
+  const base = action === "list" ? "/swipe/list" : "/swipe/decisions";
+  return send(`${base}/${mediaType}/${tmdbId}`, { method: "DELETE" });
+}
+
+function resetCard(card) {
+  card.style.transform = "";
+  for (const name of ["--like", "--skip", "--list"]) {
+    card.style.removeProperty(name);
+  }
 }
 
 async function refill() {
@@ -127,20 +143,25 @@ async function refill() {
   showDoneWhenEmpty();
 }
 
-function decide(card, liked) {
-  const direction = liked ? 1 : -1;
+const EXITS = {
+  like: "translate(140vw, 40px) rotate(28deg)",
+  skip: "translate(-140vw, 40px) rotate(-28deg)",
+  list: "translate(0, -130vh) scale(0.9)",
+};
+
+function decide(card, action) {
   card.classList.remove("is-dragging");
   card.classList.add("is-leaving");
-  card.style.setProperty(liked ? "--like" : "--skip", "1");
-  card.style.transform = `translate(${direction * 140}vw, 40px) rotate(${direction * 28}deg)`;
+  card.style.setProperty(`--${action}`, "1");
+  card.style.transform = EXITS[action];
   const timer = setTimeout(() => {
     card.remove();
     showDoneWhenEmpty();
   }, LEAVE_MS);
-  undoStack.push({ card, timer });
+  undoStack.push({ card, timer, action });
   updateUndo();
   layout();
-  enqueue(() => sendDecision(card, liked));
+  enqueue(() => (action === "list" ? sendToList(card) : sendDecision(card, action === "like")));
   refill();
 }
 
@@ -151,7 +172,7 @@ function undo() {
   if (!entry || !deck) {
     return;
   }
-  const { card, timer } = entry;
+  const { card, timer, action } = entry;
   clearTimeout(timer);
   showDeck();
   card.classList.remove("is-leaving");
@@ -160,26 +181,33 @@ function undo() {
   layout();
   card.getBoundingClientRect();
   card.classList.remove("is-dragging");
-  card.style.transform = "";
-  card.style.removeProperty("--like");
-  card.style.removeProperty("--skip");
-  enqueue(() => sendUndo(card));
+  resetCard(card);
+  enqueue(() => sendUndo(card, action));
 }
 
 function endDrag(accept) {
   if (!drag) {
     return;
   }
-  const { card, dx } = drag;
+  const { card, dx, dy } = drag;
   drag = null;
   card.classList.remove("is-dragging");
-  if (accept && Math.abs(dx) >= THRESHOLD) {
-    decide(card, dx > 0);
+  const action = accept ? dragAction(dx, dy) : null;
+  if (action) {
+    decide(card, action);
     return;
   }
-  card.style.transform = "";
-  card.style.removeProperty("--like");
-  card.style.removeProperty("--skip");
+  resetCard(card);
+}
+
+function dragAction(dx, dy) {
+  if (-dy >= THRESHOLD && -dy > Math.abs(dx)) {
+    return "list";
+  }
+  if (Math.abs(dx) >= THRESHOLD) {
+    return dx > 0 ? "like" : "skip";
+  }
+  return null;
 }
 
 document.addEventListener("pointerdown", (event) => {
@@ -187,7 +215,7 @@ document.addEventListener("pointerdown", (event) => {
   if (!card || card !== topCard() || event.button !== 0 || event.target.closest("a")) {
     return;
   }
-  drag = { card, pointer: event.pointerId, startX: event.clientX, startY: event.clientY, dx: 0 };
+  drag = { card, pointer: event.pointerId, startX: event.clientX, startY: event.clientY, dx: 0, dy: 0 };
   card.setPointerCapture(event.pointerId);
   card.classList.add("is-dragging");
 });
@@ -197,10 +225,13 @@ document.addEventListener("pointermove", (event) => {
     return;
   }
   drag.dx = event.clientX - drag.startX;
-  const dy = (event.clientY - drag.startY) * 0.3;
-  drag.card.style.transform = `translate(${drag.dx}px, ${dy}px) rotate(${drag.dx / 18}deg)`;
+  drag.dy = event.clientY - drag.startY;
+  const upward = Math.max(0, -drag.dy - Math.abs(drag.dx));
+  const offsetY = drag.dy < 0 ? drag.dy : drag.dy * 0.3;
+  drag.card.style.transform = `translate(${drag.dx}px, ${offsetY}px) rotate(${drag.dx / 18}deg)`;
   drag.card.style.setProperty("--like", String(Math.max(0, drag.dx / THRESHOLD)));
   drag.card.style.setProperty("--skip", String(Math.max(0, -drag.dx / THRESHOLD)));
+  drag.card.style.setProperty("--list", String(upward / THRESHOLD));
 });
 
 document.addEventListener("pointerup", () => endDrag(true));
@@ -217,7 +248,7 @@ document.addEventListener("click", (event) => {
   }
   const card = topCard();
   if (card) {
-    decide(card, button.dataset.swipe === "like");
+    decide(card, button.dataset.swipe);
   }
 });
 
@@ -226,9 +257,10 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const card = topCard();
-  if (card && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
+  const action = { ArrowRight: "like", ArrowLeft: "skip", ArrowUp: "list" }[event.key];
+  if (card && action) {
     event.preventDefault();
-    decide(card, event.key === "ArrowRight");
+    decide(card, action);
   } else if (event.key === "Backspace") {
     event.preventDefault();
     undo();

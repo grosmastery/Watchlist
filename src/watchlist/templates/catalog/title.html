@@ -45,6 +45,9 @@
             {% endwith %}
             <div hx-get="/titles/{{ title.id }}/trailer" hx-trigger="load" hx-swap="outerHTML"></div>
           </div>
+          {% with title_id=title.id %}
+            {% include "tracking/_rating.html" %}
+          {% endwith %}
           {% if title.is_series %}
             {% include "tracking/_progress.html" %}
           {% endif %}

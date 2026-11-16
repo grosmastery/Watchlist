@@ -99,7 +99,7 @@ async def test_change_status_and_rating(client: AsyncClient, db_session: AsyncSe
 
     assert status_response.status_code == 200
     assert rating_response.status_code == 200
-    assert '<option value="8" selected>' in rating_response.text
+    assert "8/10" in rating_response.text
     entry = await get_entry(db_session, user_id, title_id)
     assert entry is not None
     assert entry.status is ListStatus.COMPLETED

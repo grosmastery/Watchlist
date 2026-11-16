@@ -5,6 +5,7 @@
   <div class="absolute inset-0 bg-linear-to-t from-black/95 via-black/25 to-transparent"></div>
   <span class="swipe-stamp swipe-stamp-like" aria-hidden="true">Подобається</span>
   <span class="swipe-stamp swipe-stamp-skip" aria-hidden="true">Пропустити</span>
+  <span class="swipe-stamp swipe-stamp-list" aria-hidden="true">У список</span>
   <div class="absolute inset-x-0 bottom-0 p-5">
     <h2 class="line-clamp-2 font-display text-2xl leading-tight font-medium tracking-wide">{{ card.name }}</h2>
     <p class="mt-1 text-sm font-semibold text-fg/80">{{ card.subtitle }}{% if card.rating %} · <span class="text-accent-soft">★ {{ "%.1f" | format(card.rating) }}</span>{% endif %}</p>

@@ -9,14 +9,16 @@
         <option value="{{ item.value }}" {% if entry.status == item %}selected{% endif %}>{{ item.label }}</option>
       {% endfor %}
     </select>
+    {% if view != "title" %}
     <select name="rating" aria-label="Оцінка"
             hx-patch="/list/{{ title_id }}?view={{ view }}" hx-trigger="change"
-            hx-target="{{ target }}" hx-swap="outerHTML" class="{{ select_class }}">
+            hx-target="{{ target }}" hx-swap="outerHTML" class="{{ select_class }} {% if entry.rating %}text-accent-soft{% endif %}">
       <option value="" {% if entry.rating is none %}selected{% endif %}>Без оцінки</option>
       {% for value in rating_values %}
         <option value="{{ value }}" {% if entry.rating == value %}selected{% endif %}>★ {{ value }}</option>
       {% endfor %}
     </select>
+    {% endif %}
     <button type="button"
             hx-delete="/list/{{ title_id }}?view={{ view }}" hx-confirm="Прибрати зі списку?"
             hx-target="{{ '#row-' ~ title_id if view == 'list' else target }}" hx-swap="outerHTML"
@@ -38,3 +40,6 @@
     </form>
   {% endif %}
 </div>
+{% if rating_oob %}
+  {% include "tracking/_rating.html" %}
+{% endif %}

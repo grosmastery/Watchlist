@@ -16,6 +16,7 @@ from watchlist.tracking.service import (
     add_to_list,
     count_by_status,
     list_entries,
+    rate_title,
     remove_from_list,
     update_entry,
 )
@@ -38,7 +39,7 @@ def controls_response(
     response = templates.TemplateResponse(
         request,
         "tracking/_entry_controls.html",
-        {"title_id": title_id, "entry": entry, "view": view},
+        {"title_id": title_id, "entry": entry, "view": view, "rating_oob": view == "title"},
     )
     response.headers["HX-Trigger"] = LIST_CHANGED_EVENT
     return response
@@ -151,6 +152,32 @@ async def change_entry(
         return bad_request(request, "Оцінка має бути числом від 1 до 10.")
     await session.commit()
     return controls_response(request, title_id, entry, view)
+
+
+@router.post("/list/{title_id}/rating", dependencies=[Depends(csrf_protect)], response_model=None)
+async def change_rating(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    title_id: int,
+    rating_value: Annotated[str, Form(alias="rating")] = "",
+) -> Response:
+    try:
+        entry = await rate_title(session, user.id, title_id, parse_rating(rating_value))
+    except InvalidRatingError:
+        return bad_request(request, "Оцінка має бути числом від 1 до 10.")
+    except TitleNotFoundError:
+        return render_error(
+            request, status.HTTP_404_NOT_FOUND, "Не знайдено", "Такого тайтлу немає в каталозі."
+        )
+    await session.commit()
+    response = templates.TemplateResponse(
+        request,
+        "tracking/_rating.html",
+        {"title_id": title_id, "entry": entry, "view": "title", "controls_oob": True},
+    )
+    response.headers["HX-Trigger"] = LIST_CHANGED_EVENT
+    return response
 
 
 @router.delete("/list/{title_id}", dependencies=[Depends(csrf_protect)], response_model=None)

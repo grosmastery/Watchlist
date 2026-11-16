@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Form, Path, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from watchlist.auth.dependencies import DbSession, RequiredUser
+from watchlist.catalog.models import TitleType
+from watchlist.catalog.service import find_title_id, get_or_import_title
 from watchlist.csrf import csrf_protect
 from watchlist.home.routes import Cache, cached_genres
 from watchlist.integrations.dependencies import TMDB
@@ -21,6 +23,8 @@ from watchlist.swipe.service import (
     undo_swipe,
 )
 from watchlist.templating import templates
+from watchlist.tracking.models import ListStatus
+from watchlist.tracking.service import add_to_list, remove_from_list
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +32,8 @@ router = APIRouter(tags=["swipe"])
 
 CSRF = [Depends(csrf_protect)]
 Types = Annotated[list[SwipeCategory] | None, Query()]
+MediaTypeParam = Literal["tv", "movie"]
+TmdbId = Annotated[int, Path(gt=0)]
 
 
 def ordered(types: list[SwipeCategory] | None) -> list[SwipeCategory]:
@@ -99,6 +105,37 @@ async def undo_decision(
 ) -> JSONResponse:
     await undo_swipe(session, user.id, media_type, tmdb_id)
     await session.commit()
+    return JSONResponse({"liked_count": await liked_count(session, user.id)})
+
+
+@router.post("/swipe/list", dependencies=CSRF)
+async def swipe_to_list(
+    user: RequiredUser,
+    session: DbSession,
+    client: TMDB,
+    media_type: Annotated[MediaTypeParam, Form()],
+    tmdb_id: Annotated[int, Form(gt=0)],
+) -> JSONResponse:
+    try:
+        title_id = await get_or_import_title(
+            session, client, TitleType.from_tmdb(media_type), tmdb_id
+        )
+    except TMDBError as failure:
+        logger.warning("Could not import a swiped title: %s", failure)
+        return JSONResponse({"detail": "tmdb"}, status_code=502)
+    await add_to_list(session, user.id, title_id, ListStatus.PLANNED)
+    await session.commit()
+    return JSONResponse({"liked_count": await liked_count(session, user.id)})
+
+
+@router.delete("/swipe/list/{media_type}/{tmdb_id}", dependencies=CSRF)
+async def undo_swipe_to_list(
+    user: RequiredUser, session: DbSession, media_type: MediaTypeParam, tmdb_id: TmdbId
+) -> JSONResponse:
+    title_id = await find_title_id(session, TitleType.from_tmdb(media_type), tmdb_id)
+    if title_id is not None:
+        await remove_from_list(session, user.id, title_id)
+        await session.commit()
     return JSONResponse({"liked_count": await liked_count(session, user.id)})
 
 
