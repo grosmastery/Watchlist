@@ -46,6 +46,22 @@ class BrowseItem(SearchResult):
     adult: bool = False
 
 
+class WatchProvider(TMDBModel):
+    provider_id: int
+    provider_name: str
+    logo_path: str | None = None
+    display_priority: int = 0
+
+
+class WatchOptions(TMDBModel):
+    link: str = ""
+    flatrate: list[WatchProvider] = Field(default_factory=list)
+    free: list[WatchProvider] = Field(default_factory=list)
+    ads: list[WatchProvider] = Field(default_factory=list)
+    rent: list[WatchProvider] = Field(default_factory=list)
+    buy: list[WatchProvider] = Field(default_factory=list)
+
+
 class Video(TMDBModel):
     key: str
     site: str = ""

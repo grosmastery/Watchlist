@@ -15,13 +15,15 @@ from watchlist.catalog.service import (
 )
 from watchlist.catalog.similar import find_similar
 from watchlist.catalog.trailers import find_trailer
+from watchlist.catalog.watch import find_watch_info
 from watchlist.csrf import csrf_protect
 from watchlist.home.routes import Cache
 from watchlist.integrations.dependencies import TMDB
 from watchlist.integrations.tmdb import TMDBError, TMDBNotConfiguredError
 from watchlist.integrations.tmdb_schemas import SearchResult
 from watchlist.templating import render_error, templates
-from watchlist.tracking.progress import up_next_for_title, watched_ids_for_title
+from watchlist.tracking.progress import up_next_for_title, utc_today, watched_ids_for_title
+from watchlist.tracking.seasons import season_news
 from watchlist.tracking.service import get_entry
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,7 @@ QUERY_MAX_LENGTH = 200
 TRAILER_TTL = 24 * 3600
 SIMILAR_TTL = 24 * 3600
 CAST_TTL = 24 * 3600
+WATCH_TTL = 12 * 3600
 CSRF = [Depends(csrf_protect)]
 
 
@@ -177,6 +180,33 @@ async def title_cast(
     return templates.TemplateResponse(request, "catalog/_cast.html", {"actors": actors})
 
 
+@router.get("/titles/{title_id}/watch", response_class=HTMLResponse)
+async def title_watch(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    cache: Cache,
+    client: TMDB,
+    title_id: Annotated[int, Path(gt=0)],
+) -> HTMLResponse:
+    title = await session.get(Title, title_id)
+    if title is None:
+        return HTMLResponse("")
+    media_type = title.type.tmdb_type
+    try:
+        watch = await cache.get_or_load(
+            ("watch", client.region, media_type, title.tmdb_id),
+            WATCH_TTL,
+            lambda: find_watch_info(client, media_type, title.tmdb_id),
+        )
+    except TMDBError as failure:
+        logger.warning("Could not load watch providers for title %s: %s", title_id, failure)
+        return HTMLResponse("")
+    if watch is None:
+        return HTMLResponse("")
+    return templates.TemplateResponse(request, "catalog/_watch.html", {"watch": watch})
+
+
 @router.get("/titles/{title_id}", response_class=HTMLResponse)
 async def title_page(
     request: Request,
@@ -195,8 +225,11 @@ async def title_page(
         "watched_ids": set(),
         "progress": None,
         "next_episode": None,
+        "season": None,
     }
     if title.is_series:
+        news = await season_news(session, [title.id], utc_today())
+        context["season"] = news.get(title.id)
         context["watched_ids"] = await watched_ids_for_title(session, user.id, title.id)
         item = await up_next_for_title(session, user.id, title.id)
         if item is not None:

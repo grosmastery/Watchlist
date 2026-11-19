@@ -17,6 +17,7 @@ from watchlist.integrations.tmdb_schemas import (
     SeriesDetails,
     SeriesWithEpisodes,
     Video,
+    WatchOptions,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ class TMDBClient:
         *,
         language: str = "uk-UA",
         fallback_language: str = "en-US",
+        region: str | None = None,
         base_url: str = BASE_URL,
         max_retries: int = 3,
         backoff: float = 0.5,
@@ -76,6 +78,7 @@ class TMDBClient:
         self.api_key = api_key
         self.language = language
         self.fallback_language = fallback_language
+        self.region = (region or language.rpartition("-")[2]).upper()
         self.max_retries = max_retries
         self.backoff = backoff
         self._semaphore = asyncio.Semaphore(max_concurrency)
@@ -213,6 +216,11 @@ class TMDBClient:
             f"/{media_type}/{tmdb_id}/videos", {"include_video_language": languages}
         )
         return [Video.model_validate(item) for item in payload.get("results", [])]
+
+    async def get_watch_options(self, media_type: MediaType, tmdb_id: int) -> WatchOptions | None:
+        payload = await self._get(f"/{media_type}/{tmdb_id}/watch/providers")
+        options = payload.get("results", {}).get(self.region)
+        return WatchOptions.model_validate(options) if options else None
 
     async def get_cast(self, media_type: MediaType, tmdb_id: int) -> list[CastMember]:
         path = "aggregate_credits" if media_type == "tv" else "credits"

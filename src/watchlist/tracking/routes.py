@@ -7,6 +7,8 @@ from watchlist.auth.dependencies import DbSession, RequiredUser
 from watchlist.csrf import csrf_protect
 from watchlist.templating import render_error, templates
 from watchlist.tracking.models import ListStatus, UserTitle
+from watchlist.tracking.progress import utc_today
+from watchlist.tracking.seasons import season_news
 from watchlist.tracking.service import (
     UNSET,
     EntryNotFoundError,
@@ -79,8 +81,15 @@ def parse_rating(value: str) -> int | None:
 async def my_list(
     request: Request, user: RequiredUser, session: DbSession, status_filter: StatusFilter = None
 ) -> HTMLResponse:
+    entries = await list_entries(session, user.id, status_filter)
+    followed = [
+        entry.title_id
+        for entry in entries
+        if entry.title.is_series and entry.status is not ListStatus.DROPPED
+    ]
     context = {
-        "entries": await list_entries(session, user.id, status_filter),
+        "entries": entries,
+        "news": await season_news(session, followed, utc_today()),
         "counts": await count_by_status(session, user.id),
         "current_status": status_filter,
     }

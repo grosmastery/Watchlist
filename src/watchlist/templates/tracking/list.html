@@ -21,6 +21,11 @@
               <p class="mt-0.5 text-sm text-faint">
                 {{ "Серіал" if title.is_series else "Фільм" }}{% if title.release_date %} · {{ title.release_date.year }}{% endif %}
               </p>
+              {% with season = news.get(title.id) %}
+                {% if season %}
+                  {% include "tracking/_season_news.html" %}
+                {% endif %}
+              {% endwith %}
             </div>
           </a>
           {% with title_id=title.id, view="list" %}
