@@ -1,0 +1,36 @@
+<form method="get" action="/list" aria-label="Фільтри та сортування"
+      class="mb-6 flex flex-wrap items-center gap-2"
+      hx-on:change="this.requestSubmit()">
+  {% if current_status %}<input type="hidden" name="status" value="{{ current_status.value }}">{% endif %}
+  <fieldset class="flex flex-wrap gap-2">
+    <legend class="sr-only">Тип</legend>
+    {% for value, label in [("", "Усе"), ("series", "Серіали"), ("movie", "Фільми")] %}
+      <label class="chip chip-check">
+        <input type="radio" name="type" value="{{ value }}" class="sr-only"
+               {% if (filters.title_type.value if filters.title_type else "") == value %}checked{% endif %}>
+        {{ label }}
+      </label>
+    {% endfor %}
+  </fieldset>
+  <div class="ml-auto flex flex-wrap gap-2">
+    {% if genres %}
+      <label class="sr-only" for="list-genre">Жанр</label>
+      <select id="list-genre" name="genre" class="field w-auto py-1.5">
+        <option value="">Усі жанри</option>
+        {% for genre in genres %}
+          <option value="{{ genre }}" {% if filters.genre == genre %}selected{% endif %}>{{ genre }}</option>
+        {% endfor %}
+      </select>
+    {% endif %}
+    <label class="sr-only" for="list-sort">Сортування</label>
+    <select id="list-sort" name="sort" class="field w-auto py-1.5">
+      {% for item in sorts %}
+        <option value="{{ item.value }}" {% if filters.sort == item %}selected{% endif %}>{{ item.label }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit" class="btn btn-secondary py-1.5">Застосувати</button></noscript>
+    {% if filter_query %}
+      <a href="/list{% if current_status %}?status={{ current_status.value }}{% endif %}" class="btn btn-ghost py-1.5">Скинути</a>
+    {% endif %}
+  </div>
+</form>

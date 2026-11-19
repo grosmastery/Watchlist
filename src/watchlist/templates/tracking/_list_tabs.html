@@ -1,11 +1,12 @@
 {% set total = counts.values() | sum %}
-<nav id="list-tabs" aria-label="Фільтр за статусом" class="mb-6 flex flex-wrap gap-2"
-     hx-get="/list/tabs{% if current_status %}?status={{ current_status.value }}{% endif %}"
+{% set extra = "&" ~ filter_query if filter_query else "" %}
+<nav id="list-tabs" aria-label="Фільтр за статусом" class="mb-4 flex flex-wrap gap-2"
+     hx-get="/list/tabs?{% if current_status %}status={{ current_status.value }}{% endif %}{{ extra }}"
      hx-trigger="list-changed from:body" hx-swap="outerHTML">
-  <a href="/list" class="chip {{ 'chip-active' if not current_status }}"
+  <a href="/list{% if filter_query %}?{{ filter_query }}{% endif %}" class="chip {{ 'chip-active' if not current_status }}"
      {% if not current_status %}aria-current="page"{% endif %}>Усі · {{ total }}</a>
   {% for item in list_statuses %}
-    <a href="/list?status={{ item.value }}" class="chip {{ 'chip-active' if current_status == item }}"
+    <a href="/list?status={{ item.value }}{{ extra }}" class="chip {{ 'chip-active' if current_status == item }}"
        {% if current_status == item %}aria-current="page"{% endif %}>{{ item.label }} · {{ counts[item] }}</a>
   {% endfor %}
 </nav>

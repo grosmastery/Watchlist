@@ -1,9 +1,11 @@
 from typing import Annotated, Literal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from watchlist.auth.dependencies import DbSession, RequiredUser
+from watchlist.catalog.models import TitleType
 from watchlist.csrf import csrf_protect
 from watchlist.templating import render_error, templates
 from watchlist.tracking.models import ListStatus, UserTitle
@@ -13,11 +15,14 @@ from watchlist.tracking.service import (
     UNSET,
     EntryNotFoundError,
     InvalidRatingError,
+    ListFilters,
+    ListSort,
     TitleNotFoundError,
     Unset,
     add_to_list,
     count_by_status,
     list_entries,
+    list_genres,
     rate_title,
     remove_from_list,
     update_entry,
@@ -29,6 +34,39 @@ LIST_CHANGED_EVENT = "list-changed"
 
 View = Annotated[Literal["title", "list"], Query()]
 StatusFilter = Annotated[ListStatus | None, Query(alias="status")]
+TypeFilter = Annotated[Literal["", "series", "movie"], Query(alias="type")]
+GenreFilter = Annotated[str | None, Query(max_length=100)]
+SortOrder = Annotated[ListSort, Query()]
+
+
+def list_filters(
+    status_filter: StatusFilter = None,
+    type_filter: TypeFilter = "",
+    genre: GenreFilter = None,
+    sort: SortOrder = ListSort.UPDATED,
+) -> ListFilters:
+    title_type = TitleType(type_filter) if type_filter else None
+    return ListFilters(status_filter, title_type, genre or None, sort)
+
+
+Filters = Annotated[ListFilters, Depends(list_filters)]
+
+
+def filter_query(filters: ListFilters) -> str:
+    params = {
+        "type": filters.title_type.value if filters.title_type else None,
+        "genre": filters.genre,
+        "sort": filters.sort.value if filters.sort is not ListSort.UPDATED else None,
+    }
+    return urlencode({key: value for key, value in params.items() if value})
+
+
+def filters_context(filters: ListFilters) -> dict[str, object]:
+    return {
+        "filters": filters,
+        "current_status": filters.status,
+        "filter_query": filter_query(filters),
+    }
 
 
 def is_htmx(request: Request) -> bool:
@@ -79,9 +117,9 @@ def parse_rating(value: str) -> int | None:
 
 @router.get("/list", response_class=HTMLResponse)
 async def my_list(
-    request: Request, user: RequiredUser, session: DbSession, status_filter: StatusFilter = None
+    request: Request, user: RequiredUser, session: DbSession, filters: Filters
 ) -> HTMLResponse:
-    entries = await list_entries(session, user.id, status_filter)
+    entries = await list_entries(session, user.id, filters)
     followed = [
         entry.title_id
         for entry in entries
@@ -91,16 +129,18 @@ async def my_list(
         "entries": entries,
         "news": await season_news(session, followed, utc_today()),
         "counts": await count_by_status(session, user.id),
-        "current_status": status_filter,
+        "genres": await list_genres(session, user.id),
+        "sorts": list(ListSort),
+        **filters_context(filters),
     }
     return templates.TemplateResponse(request, "tracking/list.html", context)
 
 
 @router.get("/list/tabs", response_class=HTMLResponse)
 async def list_tabs(
-    request: Request, user: RequiredUser, session: DbSession, status_filter: StatusFilter = None
+    request: Request, user: RequiredUser, session: DbSession, filters: Filters
 ) -> HTMLResponse:
-    context = {"counts": await count_by_status(session, user.id), "current_status": status_filter}
+    context = {"counts": await count_by_status(session, user.id), **filters_context(filters)}
     return templates.TemplateResponse(request, "tracking/_list_tabs.html", context)
 
 

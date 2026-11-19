@@ -5,6 +5,9 @@
 {% block content %}
   <h1 class="heading-page mb-5">Мій список</h1>
   {% include "tracking/_list_tabs.html" %}
+  {% if counts.values() | sum %}
+    {% include "tracking/_list_filters.html" %}
+  {% endif %}
 
   {% if entries %}
     <ul class="panel divide-y divide-line">
@@ -34,6 +37,8 @@
         </li>
       {% endfor %}
     </ul>
+  {% elif filter_query %}
+    <p class="empty-state">За цими фільтрами нічого не знайдено.</p>
   {% elif current_status %}
     <p class="empty-state">У статусі «{{ current_status.label }}» поки нічого немає.</p>
   {% else %}

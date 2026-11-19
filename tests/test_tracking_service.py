@@ -7,6 +7,7 @@ from watchlist.tracking.models import ListStatus, UserTitle
 from watchlist.tracking.service import (
     EntryNotFoundError,
     InvalidRatingError,
+    ListFilters,
     TitleNotFoundError,
     add_to_list,
     count_by_status,
@@ -119,7 +120,7 @@ async def test_list_filter_and_counts(db_session: AsyncSession) -> None:
     await add_to_list(db_session, user_id, planned, ListStatus.PLANNED)
     await add_to_list(db_session, user_id, other, ListStatus.PLANNED)
 
-    filtered = await list_entries(db_session, user_id, ListStatus.PLANNED)
+    filtered = await list_entries(db_session, user_id, ListFilters(status=ListStatus.PLANNED))
     counts = await count_by_status(db_session, user_id)
 
     assert {entry.title_id for entry in filtered} == {planned, other}

@@ -1,12 +1,54 @@
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum, StrEnum, auto
+from typing import Any
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import UnaryExpression, any_, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from watchlist.catalog.models import Title
+from watchlist.catalog.models import Title, TitleType
 from watchlist.tracking.models import RATING_MAX, RATING_MIN, ListStatus, UserTitle
+
+
+class ListSort(StrEnum):
+    UPDATED = "updated"
+    ADDED = "added"
+    NAME = "name"
+    RATING = "rating"
+    YEAR = "year"
+
+    @property
+    def label(self) -> str:
+        return SORT_LABELS[self]
+
+
+SORT_LABELS = {
+    ListSort.UPDATED: "Нещодавно змінені",
+    ListSort.ADDED: "Нещодавно додані",
+    ListSort.NAME: "За назвою",
+    ListSort.RATING: "За моєю оцінкою",
+    ListSort.YEAR: "За роком виходу",
+}
+
+
+@dataclass(frozen=True)
+class ListFilters:
+    status: ListStatus | None = None
+    title_type: TitleType | None = None
+    genre: str | None = None
+    sort: ListSort = ListSort.UPDATED
+
+
+def sort_order(sort: ListSort) -> list[UnaryExpression[Any]]:
+    orders: dict[ListSort, list[UnaryExpression[Any]]] = {
+        ListSort.UPDATED: [UserTitle.updated_at.desc()],
+        ListSort.ADDED: [UserTitle.added_at.desc()],
+        ListSort.NAME: [func.lower(Title.name).asc()],
+        ListSort.RATING: [UserTitle.rating.desc().nulls_last(), UserTitle.updated_at.desc()],
+        ListSort.YEAR: [Title.release_date.desc().nulls_last()],
+    }
+    return [*orders[sort], UserTitle.id.desc()]
 
 
 class Unset(Enum):
@@ -103,17 +145,34 @@ async def remove_from_list(session: AsyncSession, user_id: int, title_id: int) -
 
 
 async def list_entries(
-    session: AsyncSession, user_id: int, status: ListStatus | None = None
+    session: AsyncSession, user_id: int, filters: ListFilters | None = None
 ) -> list[UserTitle]:
+    filters = filters or ListFilters()
     statement = (
         select(UserTitle)
+        .join(UserTitle.title)
         .where(UserTitle.user_id == user_id)
         .options(selectinload(UserTitle.title))
-        .order_by(UserTitle.updated_at.desc(), UserTitle.id.desc())
+        .order_by(*sort_order(filters.sort))
     )
-    if status is not None:
-        statement = statement.where(UserTitle.status == status)
+    if filters.status is not None:
+        statement = statement.where(UserTitle.status == filters.status)
+    if filters.title_type is not None:
+        statement = statement.where(Title.type == filters.title_type)
+    if filters.genre:
+        statement = statement.where(any_(Title.genres) == filters.genre)
     return list(await session.scalars(statement))
+
+
+async def list_genres(session: AsyncSession, user_id: int) -> list[str]:
+    genre = func.unnest(Title.genres).label("genre")
+    subquery = (
+        select(genre)
+        .join(UserTitle, UserTitle.title_id == Title.id)
+        .where(UserTitle.user_id == user_id)
+    ).subquery()
+    rows = await session.scalars(select(subquery.c.genre).distinct())
+    return sorted(rows, key=str.casefold)
 
 
 async def count_by_status(session: AsyncSession, user_id: int) -> dict[ListStatus, int]:
