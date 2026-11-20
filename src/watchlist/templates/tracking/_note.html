@@ -1,0 +1,43 @@
+{% set note = entry.note if entry else none %}
+<section id="note-{{ title_id }}" {% if note_oob %}hx-swap-oob="true"{% endif %} class="group mt-5 max-w-prose" aria-labelledby="note-heading-{{ title_id }}">
+  <div class="flex items-center gap-3">
+    <h2 id="note-heading-{{ title_id }}" class="text-sm font-semibold text-muted">Моя нотатка</h2>
+    {% if note %}
+      <button type="button" class="link text-sm group-data-editing:hidden"
+              hx-on:click="const section = this.closest('section'); section.toggleAttribute('data-editing', true); section.querySelector('textarea').focus()">Змінити</button>
+    {% endif %}
+  </div>
+  {% if note %}
+    <p class="mt-2 rounded-lg border-l-2 border-accent bg-white/[0.04] px-4 py-3 leading-relaxed whitespace-pre-line text-fg/90 group-data-editing:hidden">{{ note }}</p>
+  {% else %}
+    <button type="button" class="btn btn-ghost mt-1 -ml-2 px-2 py-1 group-data-editing:hidden"
+            hx-on:click="const section = this.closest('section'); section.toggleAttribute('data-editing', true); section.querySelector('textarea').focus()">
+      <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4" aria-hidden="true"><path d="M13.6 2.6a2 2 0 0 1 2.8 0l1 1a2 2 0 0 1 0 2.8l-9.200 9.200-4.200 1.200 1.200-4.200 9.200-9.200Z"/></svg>
+      Додати нотатку чи відгук
+    </button>
+  {% endif %}
+  <form class="mt-2 hidden group-data-editing:block"
+        hx-post="/list/{{ title_id }}/note" hx-target="#note-{{ title_id }}" hx-swap="outerHTML">
+    <label for="note-text-{{ title_id }}" class="sr-only">Текст нотатки</label>
+    <textarea id="note-text-{{ title_id }}" name="note" rows="4" maxlength="{{ note_max_length }}"
+              placeholder="Що сподобалось, що ні, на якій серії зупинився…"
+              class="field resize-y leading-relaxed">{{ note or "" }}</textarea>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <button type="submit" class="btn btn-primary py-1.5">Зберегти</button>
+      <button type="button" class="btn btn-ghost py-1.5"
+              hx-on:click="const section = this.closest('section'); section.querySelector('form').reset(); section.removeAttribute('data-editing')">Скасувати</button>
+      {% if note %}
+        <button type="button" class="btn btn-ghost ml-auto py-1.5 hover:text-red-300"
+                hx-on:click="if (confirm('Видалити нотатку?')) { this.form.elements.note.value = ''; this.form.requestSubmit() }">Видалити</button>
+      {% endif %}
+    </div>
+    {% if not entry %}
+      <p class="mt-2 text-xs text-faint">Нотатка додасть тайтл у список як «Хочу подивитись»</p>
+    {% endif %}
+  </form>
+</section>
+{% if controls_oob %}
+  {% with oob=True, view="title", rating_oob=True, note_oob=False %}
+    {% include "tracking/_entry_controls.html" %}
+  {% endwith %}
+{% endif %}

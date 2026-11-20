@@ -6,7 +6,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from watchlist.tracking.models import RATING_MAX, RATING_MIN, ListStatus
+from watchlist.tracking.models import NOTE_MAX_LENGTH, RATING_MAX, RATING_MIN, ListStatus
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
@@ -53,6 +53,7 @@ templates.env.filters["format_date"] = format_date
 templates.env.filters["status_label"] = status_label
 templates.env.globals["list_statuses"] = list(ListStatus)
 templates.env.globals["rating_values"] = list(range(RATING_MIN, RATING_MAX + 1))
+templates.env.globals["note_max_length"] = NOTE_MAX_LENGTH
 
 
 def render_error(request: Request, status_code: int, title: str, message: str) -> HTMLResponse:

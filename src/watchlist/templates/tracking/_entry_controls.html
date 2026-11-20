@@ -41,5 +41,12 @@
   {% endif %}
 </div>
 {% if rating_oob %}
-  {% include "tracking/_rating.html" %}
+  {% with controls_oob=False %}
+    {% include "tracking/_rating.html" %}
+  {% endwith %}
+{% endif %}
+{% if note_oob %}
+  {% with controls_oob=False %}
+    {% include "tracking/_note.html" %}
+  {% endwith %}
 {% endif %}

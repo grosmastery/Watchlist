@@ -24,6 +24,13 @@
               <p class="mt-0.5 text-sm text-faint">
                 {{ "Серіал" if title.is_series else "Фільм" }}{% if title.release_date %} · {{ title.release_date.year }}{% endif %}
               </p>
+              {% if entry.note %}
+                <p class="mt-1 flex max-w-xl items-start gap-1.5 text-sm text-muted" title="Моя нотатка">
+                  <svg viewBox="0 0 20 20" fill="currentColor" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" aria-hidden="true"><path d="M13.6 2.6a2 2 0 0 1 2.8 0l1 1a2 2 0 0 1 0 2.8l-9.200 9.200-4.200 1.200 1.200-4.200 9.200-9.200Z"/></svg>
+                  <span class="sr-only">Нотатка:</span>
+                  <span class="line-clamp-1">{{ entry.note }}</span>
+                </p>
+              {% endif %}
               {% with season = news.get(title.id) %}
                 {% if season %}
                   {% include "tracking/_season_news.html" %}

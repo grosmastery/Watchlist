@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from watchlist.catalog.models import Title, TitleType
-from watchlist.tracking.models import RATING_MAX, RATING_MIN, ListStatus, UserTitle
+from watchlist.tracking.models import (
+    NOTE_MAX_LENGTH,
+    RATING_MAX,
+    RATING_MIN,
+    ListStatus,
+    UserTitle,
+)
 
 
 class ListSort(StrEnum):
@@ -68,6 +74,17 @@ class EntryNotFoundError(Exception):
 
 class InvalidRatingError(ValueError):
     pass
+
+
+class NoteTooLongError(ValueError):
+    pass
+
+
+def clean_note(note: str) -> str | None:
+    note = note.replace("\r\n", "\n").strip()
+    if len(note) > NOTE_MAX_LENGTH:
+        raise NoteTooLongError(len(note))
+    return note or None
 
 
 def validate_rating(rating: int | None) -> int | None:
@@ -133,6 +150,21 @@ async def rate_title(
             return None
         await add_to_list(session, user_id, title_id, ListStatus.COMPLETED)
     return await update_entry(session, user_id, title_id, rating=rating)
+
+
+async def save_note(
+    session: AsyncSession, user_id: int, title_id: int, note: str
+) -> UserTitle | None:
+    cleaned = clean_note(note)
+    entry = await get_entry(session, user_id, title_id)
+    if entry is None:
+        if cleaned is None:
+            return None
+        entry = await add_to_list(session, user_id, title_id, ListStatus.PLANNED)
+    entry.note = cleaned
+    await session.flush()
+    await session.refresh(entry)
+    return entry
 
 
 async def remove_from_list(session: AsyncSession, user_id: int, title_id: int) -> bool:

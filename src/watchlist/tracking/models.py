@@ -11,6 +11,7 @@ from sqlalchemy import (
     Identity,
     Index,
     SmallInteger,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -21,6 +22,7 @@ from watchlist.db import Base
 
 RATING_MIN = 1
 RATING_MAX = 10
+NOTE_MAX_LENGTH = 2000
 
 
 class ListStatus(enum.StrEnum):
@@ -47,6 +49,7 @@ class UserTitle(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "title_id"),
         CheckConstraint(f"rating BETWEEN {RATING_MIN} AND {RATING_MAX}", name="rating_range"),
+        CheckConstraint(f"char_length(note) <= {NOTE_MAX_LENGTH}", name="note_length"),
         Index("ix_user_titles_user_id_status", "user_id", "status"),
     )
 
@@ -66,6 +69,7 @@ class UserTitle(Base):
         )
     )
     rating: Mapped[int | None] = mapped_column(SmallInteger)
+    note: Mapped[str | None] = mapped_column(Text)
     added_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 

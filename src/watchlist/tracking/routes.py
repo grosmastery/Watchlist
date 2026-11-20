@@ -8,7 +8,7 @@ from watchlist.auth.dependencies import DbSession, RequiredUser
 from watchlist.catalog.models import TitleType
 from watchlist.csrf import csrf_protect
 from watchlist.templating import render_error, templates
-from watchlist.tracking.models import ListStatus, UserTitle
+from watchlist.tracking.models import NOTE_MAX_LENGTH, ListStatus, UserTitle
 from watchlist.tracking.progress import utc_today
 from watchlist.tracking.seasons import season_news
 from watchlist.tracking.service import (
@@ -17,6 +17,7 @@ from watchlist.tracking.service import (
     InvalidRatingError,
     ListFilters,
     ListSort,
+    NoteTooLongError,
     TitleNotFoundError,
     Unset,
     add_to_list,
@@ -25,6 +26,7 @@ from watchlist.tracking.service import (
     list_genres,
     rate_title,
     remove_from_list,
+    save_note,
     update_entry,
 )
 
@@ -79,7 +81,13 @@ def controls_response(
     response = templates.TemplateResponse(
         request,
         "tracking/_entry_controls.html",
-        {"title_id": title_id, "entry": entry, "view": view, "rating_oob": view == "title"},
+        {
+            "title_id": title_id,
+            "entry": entry,
+            "view": view,
+            "rating_oob": view == "title",
+            "note_oob": view == "title",
+        },
     )
     response.headers["HX-Trigger"] = LIST_CHANGED_EVENT
     return response
@@ -223,6 +231,32 @@ async def change_rating(
     response = templates.TemplateResponse(
         request,
         "tracking/_rating.html",
+        {"title_id": title_id, "entry": entry, "view": "title", "controls_oob": True},
+    )
+    response.headers["HX-Trigger"] = LIST_CHANGED_EVENT
+    return response
+
+
+@router.post("/list/{title_id}/note", dependencies=[Depends(csrf_protect)], response_model=None)
+async def change_note(
+    request: Request,
+    user: RequiredUser,
+    session: DbSession,
+    title_id: int,
+    note: Annotated[str, Form()] = "",
+) -> Response:
+    try:
+        entry = await save_note(session, user.id, title_id, note)
+    except NoteTooLongError:
+        return bad_request(request, f"Нотатка може містити до {NOTE_MAX_LENGTH} символів.")
+    except TitleNotFoundError:
+        return render_error(
+            request, status.HTTP_404_NOT_FOUND, "Не знайдено", "Такого тайтлу немає в каталозі."
+        )
+    await session.commit()
+    response = templates.TemplateResponse(
+        request,
+        "tracking/_note.html",
         {"title_id": title_id, "entry": entry, "view": "title", "controls_oob": True},
     )
     response.headers["HX-Trigger"] = LIST_CHANGED_EVENT

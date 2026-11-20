@@ -50,6 +50,7 @@
           </div>
           {% with title_id=title.id %}
             {% include "tracking/_rating.html" %}
+            {% include "tracking/_note.html" %}
           {% endwith %}
           {% if title.is_series %}
             {% include "tracking/_progress.html" %}
