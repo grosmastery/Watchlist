@@ -83,7 +83,7 @@
   }
 
   .nav-link {
-    @apply rounded text-sm font-semibold text-muted transition hover:text-fg;
+    @apply rounded text-sm font-semibold whitespace-nowrap text-muted transition hover:text-fg;
   }
 
   .nav-link-active {

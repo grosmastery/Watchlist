@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика{% endblock %}
+
+{% macro tile(label, value, note="") %}
+  <div class="panel p-5">
+    <p class="text-sm font-semibold text-muted">{{ label }}</p>
+    <p class="mt-2 font-display text-4xl font-medium tracking-wide tabular-nums">{{ value }}</p>
+    {% if note %}<p class="mt-1 text-sm text-faint">{{ note }}</p>{% endif %}
+  </div>
+{% endmacro %}
+
+{% macro number(value) %}{{ "{:,}".format(value).replace(",", " ") }}{% endmacro %}
+
+{% set status_colors = {"watching": "bg-accent", "completed": "bg-accent-soft", "planned": "bg-white/35", "dropped": "bg-white/12"} %}
+
+{% block content %}
+  <h1 class="heading-page mb-6">Статистика</h1>
+
+  {% if not stats.total and not stats.episodes %}
+    <div class="empty-state">
+      <p>Тут з'явиться статистика, щойно ти додаси щось у список або відмітиш переглянуті серії.</p>
+      <a href="/search" class="btn btn-primary mt-5">Знайти серіал або фільм</a>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {{ tile("Тайтлів у списку", number(stats.total), "Серіалів: " ~ stats.series ~ " · Фільмів: " ~ stats.movies) }}
+      {{ tile("Серій переглянуто", number(stats.episodes)) }}
+      {{ tile("Годин на серіали", number(stats.hours), ("≈ " ~ "%.1f" | format(stats.days) ~ " доби") if stats.minutes else "") }}
+      {{ tile("Середня оцінка", "%.1f" | format(stats.average_rating) if stats.average_rating else "—", ("Оцінено: " ~ stats.rated) if stats.rated else "Ще немає оцінок") }}
+    </div>
+
+    {% if stats.total %}
+      <section class="panel mt-3 p-5" aria-labelledby="stats-status">
+        <h2 id="stats-status" class="text-sm font-semibold text-muted">Статуси</h2>
+        <div class="mt-3 flex h-3 overflow-hidden rounded-full bg-white/5">
+          {% for item in list_statuses %}
+            {% set count = stats.by_status[item] %}
+            {% if count %}
+              <div class="{{ status_colors[item.value] }}" style="width: {{ count / stats.total * 100 }}%" title="{{ item.label }}: {{ count }}"></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        <ul class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {% for item in list_statuses %}
+            <li class="flex items-center gap-2">
+              <span class="h-2.5 w-2.5 rounded-full {{ status_colors[item.value] }}" aria-hidden="true"></span>
+              <a href="/list?status={{ item.value }}" class="text-muted transition hover:text-fg">{{ item.label }}</a>
+              <span class="font-bold tabular-nums">{{ stats.by_status[item] }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    <div class="mt-3 grid gap-3 lg:grid-cols-5">
+      <section class="panel p-5 lg:col-span-3" aria-labelledby="stats-months">
+        <h2 id="stats-months" class="text-sm font-semibold text-muted">Серії за останній рік</h2>
+        <ol class="mt-4 flex h-48 items-end gap-1.5 sm:gap-2">
+          {% for bar in stats.months %}
+            <li class="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+              <span class="text-xs font-bold tabular-nums {{ 'text-fg' if bar.value else 'text-transparent' }}">{{ bar.value }}</span>
+              <div class="w-full max-w-10 rounded-t-md {{ 'bg-accent transition group-hover:brightness-125' if bar.value else 'bg-white/8' }}"
+                   style="height: {{ [bar.share * 100, 2] | max }}%" title="{{ bar.label }}: {{ bar.value }}"></div>
+              <span class="w-full truncate text-center text-[11px] text-faint">{{ bar.label }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+
+      <section class="panel p-5 lg:col-span-2" aria-labelledby="stats-genres">
+        <h2 id="stats-genres" class="text-sm font-semibold text-muted">Улюблені жанри</h2>
+        {% if stats.genres %}
+          <ol class="mt-4 space-y-3">
+            {% for bar in stats.genres %}
+              <li>
+                <div class="flex justify-between gap-3 text-sm">
+                  <a href="/list?genre={{ bar.label | urlencode }}" class="truncate font-semibold transition hover:text-accent-soft">{{ bar.label }}</a>
+                  <span class="text-faint tabular-nums">{{ bar.value }}</span>
+                </div>
+                <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-white/5">
+                  <div class="h-full rounded-full bg-accent-soft/80" style="width: {{ bar.share * 100 }}%"></div>
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="mt-4 text-sm text-faint">Жанри з'являться, коли в списку будуть тайтли.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <section class="panel mt-3 p-5" aria-labelledby="stats-ratings">
+      <h2 id="stats-ratings" class="text-sm font-semibold text-muted">Мої оцінки</h2>
+      {% if stats.rated %}
+        <ol class="mt-4 flex h-32 items-end gap-2">
+          {% for bar in stats.ratings %}
+            <li class="flex h-full flex-1 flex-col items-center justify-end gap-2">
+              <span class="text-xs font-bold tabular-nums {{ 'text-fg' if bar.value else 'text-transparent' }}">{{ bar.value }}</span>
+              <div class="w-full max-w-12 rounded-t-md {{ 'bg-accent-soft/80' if bar.value else 'bg-white/8' }}"
+                   style="height: {{ [bar.share * 100, 2] | max }}%" title="★ {{ bar.label }}: {{ bar.value }}"></div>
+              <span class="text-xs text-faint">★ {{ bar.label }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="mt-4 text-sm text-faint">Постав оцінку хоча б одному тайтлу, і тут з'явиться розподіл.</p>
+      {% endif %}
+    </section>
+    <p class="mt-4 text-xs text-faint">Години рахуються за тривалістю відмічених серій, фільми поки не враховуються.</p>
+  {% endif %}
+{% endblock %}

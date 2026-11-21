@@ -17,12 +17,13 @@
       hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
   <header class="sticky top-0 z-30 border-b border-line bg-canvas/85 backdrop-blur-lg">
     <nav class="page flex flex-wrap items-center justify-between gap-x-8 gap-y-3 py-3">
-      <div class="flex items-center gap-6">
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
         <a href="/" class="rounded font-display text-2xl font-semibold tracking-wider uppercase">Watch<span class="text-accent-soft">list</span></a>
         {% if current_user %}
           <a href="/up-next" class="nav-link {{ 'nav-link-active' if request.url.path == '/up-next' }}">Наступні серії</a>
           <a href="/list" class="nav-link {{ 'nav-link-active' if request.url.path == '/list' }}">Мій список</a>
           <a href="/swipe" class="nav-link {{ 'nav-link-active' if request.url.path.startswith('/swipe') }}">Свайпи</a>
+          <a href="/stats" class="nav-link {{ 'nav-link-active' if request.url.path == '/stats' }}">Статистика</a>
         {% endif %}
       </div>
       <form method="get" action="/search" role="search" class="group relative order-last w-full md:order-none md:w-auto md:max-w-md md:flex-1">
