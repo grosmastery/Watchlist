@@ -17,7 +17,13 @@
 {% endmacro %}
 
 {% block content %}
-  <h1 class="heading-page mb-8">Наступні серії</h1>
+  <div class="mb-8 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="heading-page">Наступні серії</h1>
+    <a href="/calendar" class="btn btn-secondary">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-4 w-4" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12.5" rx="2"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4"/></svg>
+      Календар виходу серій
+    </a>
+  </div>
   {% if available or upcoming or waiting %}
     {{ section("Можна дивитись", available) }}
     {{ section("Скоро вийде", upcoming, "Наступні серії за датою виходу") }}

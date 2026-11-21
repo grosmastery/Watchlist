@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query, Request, status
@@ -7,6 +8,7 @@ from watchlist.auth.dependencies import DbSession, RequiredUser
 from watchlist.catalog.models import Season
 from watchlist.csrf import csrf_protect
 from watchlist.templating import render_error, templates
+from watchlist.tracking.calendar import WEEKDAYS, calendar_month
 from watchlist.tracking.progress import (
     EpisodeNotAiredError,
     EpisodeNotFoundError,
@@ -29,6 +31,9 @@ ProgressView = Annotated[Literal["title", "next"], Query()]
 EpisodeId = Annotated[int, Path(gt=0)]
 SeasonId = Annotated[int, Path(gt=0)]
 CSRF = [Depends(csrf_protect)]
+MonthParam = Annotated[str | None, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]
+MIN_YEAR = 1900
+MAX_YEAR = 2100
 
 
 @router.get("/up-next", response_class=HTMLResponse)
@@ -46,6 +51,27 @@ async def up_next_page(request: Request, user: RequiredUser, session: DbSession)
         ],
     }
     return templates.TemplateResponse(request, "tracking/up_next.html", context)
+
+
+@router.get("/calendar", response_class=HTMLResponse)
+async def calendar_page(
+    request: Request, user: RequiredUser, session: DbSession, month: MonthParam = None
+) -> HTMLResponse:
+    today = utc_today()
+    shown = today.replace(day=1)
+    if month:
+        year, number = (int(part) for part in month.split("-"))
+        if not MIN_YEAR <= year <= MAX_YEAR:
+            return render_error(
+                request, status.HTTP_400_BAD_REQUEST, "Некоректний запит", "Невідомий місяць."
+            )
+        shown = date(year, number, 1)
+    context = {
+        "calendar": await calendar_month(session, user.id, shown, today),
+        "weekdays": WEEKDAYS,
+        "is_current": shown == today.replace(day=1),
+    }
+    return templates.TemplateResponse(request, "tracking/calendar.html", context)
 
 
 async def progress_response(
